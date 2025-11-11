@@ -46,6 +46,9 @@ const (
 	// EventServiceLoadSubscriptionPositionProcedure is the fully-qualified name of the EventService's
 	// LoadSubscriptionPosition RPC.
 	EventServiceLoadSubscriptionPositionProcedure = "/ebu.v1.EventService/LoadSubscriptionPosition"
+	// EventServiceReportTelemetryProcedure is the fully-qualified name of the EventService's
+	// ReportTelemetry RPC.
+	EventServiceReportTelemetryProcedure = "/ebu.v1.EventService/ReportTelemetry"
 )
 
 // EventServiceClient is a client for the ebu.v1.EventService service.
@@ -60,6 +63,8 @@ type EventServiceClient interface {
 	SaveSubscriptionPosition(context.Context, *connect.Request[v1.SaveSubscriptionPositionRequest]) (*connect.Response[v1.SaveSubscriptionPositionResponse], error)
 	// LoadSubscriptionPosition loads a subscription's saved position
 	LoadSubscriptionPosition(context.Context, *connect.Request[v1.LoadSubscriptionPositionRequest]) (*connect.Response[v1.LoadSubscriptionPositionResponse], error)
+	// ReportTelemetry accepts a stream of telemetry batches from the client
+	ReportTelemetry(context.Context) *connect.ClientStreamForClient[v1.TelemetryBatch, v1.TelemetryResponse]
 }
 
 // NewEventServiceClient constructs a client for the ebu.v1.EventService service. By default, it
@@ -103,6 +108,12 @@ func NewEventServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(eventServiceMethods.ByName("LoadSubscriptionPosition")),
 			connect.WithClientOptions(opts...),
 		),
+		reportTelemetry: connect.NewClient[v1.TelemetryBatch, v1.TelemetryResponse](
+			httpClient,
+			baseURL+EventServiceReportTelemetryProcedure,
+			connect.WithSchema(eventServiceMethods.ByName("ReportTelemetry")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -113,6 +124,7 @@ type eventServiceClient struct {
 	getPosition              *connect.Client[v1.GetPositionRequest, v1.GetPositionResponse]
 	saveSubscriptionPosition *connect.Client[v1.SaveSubscriptionPositionRequest, v1.SaveSubscriptionPositionResponse]
 	loadSubscriptionPosition *connect.Client[v1.LoadSubscriptionPositionRequest, v1.LoadSubscriptionPositionResponse]
+	reportTelemetry          *connect.Client[v1.TelemetryBatch, v1.TelemetryResponse]
 }
 
 // SaveEvent calls ebu.v1.EventService.SaveEvent.
@@ -140,6 +152,11 @@ func (c *eventServiceClient) LoadSubscriptionPosition(ctx context.Context, req *
 	return c.loadSubscriptionPosition.CallUnary(ctx, req)
 }
 
+// ReportTelemetry calls ebu.v1.EventService.ReportTelemetry.
+func (c *eventServiceClient) ReportTelemetry(ctx context.Context) *connect.ClientStreamForClient[v1.TelemetryBatch, v1.TelemetryResponse] {
+	return c.reportTelemetry.CallClientStream(ctx)
+}
+
 // EventServiceHandler is an implementation of the ebu.v1.EventService service.
 type EventServiceHandler interface {
 	// SaveEvent saves a single event to storage
@@ -152,6 +169,8 @@ type EventServiceHandler interface {
 	SaveSubscriptionPosition(context.Context, *connect.Request[v1.SaveSubscriptionPositionRequest]) (*connect.Response[v1.SaveSubscriptionPositionResponse], error)
 	// LoadSubscriptionPosition loads a subscription's saved position
 	LoadSubscriptionPosition(context.Context, *connect.Request[v1.LoadSubscriptionPositionRequest]) (*connect.Response[v1.LoadSubscriptionPositionResponse], error)
+	// ReportTelemetry accepts a stream of telemetry batches from the client
+	ReportTelemetry(context.Context, *connect.ClientStream[v1.TelemetryBatch]) (*connect.Response[v1.TelemetryResponse], error)
 }
 
 // NewEventServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -191,6 +210,12 @@ func NewEventServiceHandler(svc EventServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(eventServiceMethods.ByName("LoadSubscriptionPosition")),
 		connect.WithHandlerOptions(opts...),
 	)
+	eventServiceReportTelemetryHandler := connect.NewClientStreamHandler(
+		EventServiceReportTelemetryProcedure,
+		svc.ReportTelemetry,
+		connect.WithSchema(eventServiceMethods.ByName("ReportTelemetry")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ebu.v1.EventService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case EventServiceSaveEventProcedure:
@@ -203,6 +228,8 @@ func NewEventServiceHandler(svc EventServiceHandler, opts ...connect.HandlerOpti
 			eventServiceSaveSubscriptionPositionHandler.ServeHTTP(w, r)
 		case EventServiceLoadSubscriptionPositionProcedure:
 			eventServiceLoadSubscriptionPositionHandler.ServeHTTP(w, r)
+		case EventServiceReportTelemetryProcedure:
+			eventServiceReportTelemetryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -230,4 +257,8 @@ func (UnimplementedEventServiceHandler) SaveSubscriptionPosition(context.Context
 
 func (UnimplementedEventServiceHandler) LoadSubscriptionPosition(context.Context, *connect.Request[v1.LoadSubscriptionPositionRequest]) (*connect.Response[v1.LoadSubscriptionPositionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ebu.v1.EventService.LoadSubscriptionPosition is not implemented"))
+}
+
+func (UnimplementedEventServiceHandler) ReportTelemetry(context.Context, *connect.ClientStream[v1.TelemetryBatch]) (*connect.Response[v1.TelemetryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ebu.v1.EventService.ReportTelemetry is not implemented"))
 }

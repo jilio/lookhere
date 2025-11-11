@@ -1,17 +1,23 @@
 package lookhere
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	eventbus "github.com/jilio/ebu"
 )
 
 // WithCloud returns an eventbus option that configures the EventBus to use
-// a remote LOOKHERE cloud storage backend.
+// a remote LOOKHERE cloud storage backend with automatic telemetry collection.
 //
-// The DSN format is: grpc://api-key@host
+// The DSN format is: grpc://api-key@host?telemetry=true|false
+//
+// By default, telemetry is enabled and sends observability metrics to the
+// lookhere SaaS platform. To disable telemetry, add ?telemetry=false to the DSN.
 //
 // Example:
 //
@@ -19,37 +25,72 @@ import (
 //	    lookhere.WithCloud("grpc://V1StGXR8_Z5jdHi6B-myT@lookhere.tech"),
 //	)
 //
+// To disable telemetry:
+//
+//	bus := eventbus.New(
+//	    lookhere.WithCloud("grpc://V1StGXR8_Z5jdHi6B-myT@lookhere.tech?telemetry=false"),
+//	)
+//
 // Note: If DSN parsing fails, this will panic. Validate your DSN before using it.
 func WithCloud(dsn string) eventbus.Option {
 	// Parse DSN upfront (will panic if invalid)
-	apiKey, host, err := parseDSN(dsn)
+	apiKey, host, telemetryEnabled, err := parseDSN(dsn)
 	if err != nil {
 		panic(fmt.Sprintf("lookhere.WithCloud: invalid DSN: %v", err))
 	}
 
-	// Create remote EventStore
-	store := NewRemoteStore(host, apiKey)
+	// Create shared HTTP client for both store and telemetry
+	httpClient := createHTTPClient()
 
-	// Return the option that sets the EventStore
-	return eventbus.WithStore(store)
+	// Create remote EventStore
+	store := NewRemoteStoreWithClient(httpClient, host, apiKey)
+
+	// Return composite option
+	return func(bus *eventbus.EventBus) {
+		// Set the store
+		eventbus.WithStore(store)(bus)
+
+		// Enable telemetry if not disabled
+		if telemetryEnabled {
+			collector := NewTelemetryCollector(httpClient, host, apiKey)
+			eventbus.WithObservability(collector)(bus)
+		}
+	}
 }
 
-// parseDSN parses a DSN in the format grpc://api-key@host
-func parseDSN(dsn string) (apiKey, host string, err error) {
+// createHTTPClient creates a secure HTTP client with proper defaults
+func createHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout: 30 * time.Second, // Overall request timeout
+		Transport: &http.Transport{
+			MaxIdleConns:          100,              // Maximum idle connections
+			MaxIdleConnsPerHost:   10,               // Maximum idle connections per host
+			IdleConnTimeout:       90 * time.Second, // How long idle connections stay open
+			TLSHandshakeTimeout:   10 * time.Second, // TLS handshake timeout
+			ResponseHeaderTimeout: 10 * time.Second, // Time to wait for response headers
+			TLSClientConfig: &tls.Config{
+				MinVersion: tls.VersionTLS12, // Enforce TLS 1.2+
+			},
+		},
+	}
+}
+
+// parseDSN parses a DSN in the format grpc://api-key@host?telemetry=true|false
+func parseDSN(dsn string) (apiKey, host string, telemetryEnabled bool, err error) {
 	// Parse as URL
 	u, err := url.Parse(dsn)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid DSN: %w", err)
+		return "", "", false, fmt.Errorf("invalid DSN: %w", err)
 	}
 
 	// Check scheme
 	if u.Scheme != "grpc" {
-		return "", "", fmt.Errorf("invalid scheme: expected grpc, got %s", u.Scheme)
+		return "", "", false, fmt.Errorf("invalid scheme: expected grpc, got %s", u.Scheme)
 	}
 
 	// Extract API key from user info
 	if u.User == nil || u.User.Username() == "" {
-		return "", "", fmt.Errorf("missing API key in DSN")
+		return "", "", false, fmt.Errorf("missing API key in DSN")
 	}
 
 	apiKey = u.User.Username()
@@ -57,7 +98,13 @@ func parseDSN(dsn string) (apiKey, host string, err error) {
 	// Extract host
 	host = u.Host
 	if host == "" {
-		return "", "", fmt.Errorf("missing host in DSN")
+		return "", "", false, fmt.Errorf("missing host in DSN")
+	}
+
+	// Check telemetry query parameter (default: enabled)
+	telemetryEnabled = true
+	if telemetryParam := u.Query().Get("telemetry"); telemetryParam != "" {
+		telemetryEnabled = telemetryParam != "false"
 	}
 
 	// Add scheme for HTTP client
@@ -70,5 +117,5 @@ func parseDSN(dsn string) (apiKey, host string, err error) {
 		}
 	}
 
-	return apiKey, host, nil
+	return apiKey, host, telemetryEnabled, nil
 }

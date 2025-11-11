@@ -8,46 +8,66 @@ import (
 
 func TestParseDSN_Valid(t *testing.T) {
 	tests := []struct {
-		name           string
-		dsn            string
-		expectedAPIKey string
-		expectedHost   string
+		name                  string
+		dsn                   string
+		expectedAPIKey        string
+		expectedHost          string
+		expectedTelemetry     bool
 	}{
 		{
-			name:           "grpc with domain",
-			dsn:            "grpc://V1StGXR8_Z5jdHi6B-myT@lookhere.tech",
-			expectedAPIKey: "V1StGXR8_Z5jdHi6B-myT",
-			expectedHost:   "https://lookhere.tech",
+			name:              "grpc with domain",
+			dsn:               "grpc://V1StGXR8_Z5jdHi6B-myT@lookhere.tech",
+			expectedAPIKey:    "V1StGXR8_Z5jdHi6B-myT",
+			expectedHost:      "https://lookhere.tech",
+			expectedTelemetry: true, // default enabled
 		},
 		{
-			name:           "grpc with localhost",
-			dsn:            "grpc://test-key@localhost:8080",
-			expectedAPIKey: "test-key",
-			expectedHost:   "http://localhost:8080",
+			name:              "grpc with localhost",
+			dsn:               "grpc://test-key@localhost:8080",
+			expectedAPIKey:    "test-key",
+			expectedHost:      "http://localhost:8080",
+			expectedTelemetry: true,
 		},
 		{
-			name:           "grpc with 127.0.0.1",
-			dsn:            "grpc://test-key@127.0.0.1:8080",
-			expectedAPIKey: "test-key",
-			expectedHost:   "http://127.0.0.1:8080",
+			name:              "grpc with 127.0.0.1",
+			dsn:               "grpc://test-key@127.0.0.1:8080",
+			expectedAPIKey:    "test-key",
+			expectedHost:      "http://127.0.0.1:8080",
+			expectedTelemetry: true,
 		},
 		{
-			name:           "grpc with subdomain",
-			dsn:            "grpc://api-key-123@api.lookhere.tech",
-			expectedAPIKey: "api-key-123",
-			expectedHost:   "https://api.lookhere.tech",
+			name:              "grpc with subdomain",
+			dsn:               "grpc://api-key-123@api.lookhere.tech",
+			expectedAPIKey:    "api-key-123",
+			expectedHost:      "https://api.lookhere.tech",
+			expectedTelemetry: true,
 		},
 		{
-			name:           "grpc with port",
-			dsn:            "grpc://key@example.com:443",
-			expectedAPIKey: "key",
-			expectedHost:   "https://example.com:443",
+			name:              "grpc with port",
+			dsn:               "grpc://key@example.com:443",
+			expectedAPIKey:    "key",
+			expectedHost:      "https://example.com:443",
+			expectedTelemetry: true,
+		},
+		{
+			name:              "telemetry explicitly enabled",
+			dsn:               "grpc://key@lookhere.tech?telemetry=true",
+			expectedAPIKey:    "key",
+			expectedHost:      "https://lookhere.tech",
+			expectedTelemetry: true,
+		},
+		{
+			name:              "telemetry disabled",
+			dsn:               "grpc://key@lookhere.tech?telemetry=false",
+			expectedAPIKey:    "key",
+			expectedHost:      "https://lookhere.tech",
+			expectedTelemetry: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			apiKey, host, err := parseDSN(tt.dsn)
+			apiKey, host, telemetryEnabled, err := parseDSN(tt.dsn)
 			if err != nil {
 				t.Fatalf("expected no error, got %v", err)
 			}
@@ -56,6 +76,9 @@ func TestParseDSN_Valid(t *testing.T) {
 			}
 			if host != tt.expectedHost {
 				t.Errorf("expected host %q, got %q", tt.expectedHost, host)
+			}
+			if telemetryEnabled != tt.expectedTelemetry {
+				t.Errorf("expected telemetry %v, got %v", tt.expectedTelemetry, telemetryEnabled)
 			}
 		})
 	}
@@ -106,7 +129,7 @@ func TestParseDSN_Invalid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := parseDSN(tt.dsn)
+			_, _, _, err := parseDSN(tt.dsn)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -241,7 +264,7 @@ func TestParseDSN_SchemeInference(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsn := "grpc://key@" + tt.host
-			_, fullHost, err := parseDSN(dsn)
+			_, fullHost, _, err := parseDSN(dsn)
 			if err != nil {
 				t.Fatalf("expected no error, got %v", err)
 			}
