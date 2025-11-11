@@ -31,6 +31,29 @@ type persistMeta struct {
 	position  int64
 }
 
+const (
+	// DefaultBatchSize is the default number of metrics before flushing
+	DefaultBatchSize = 100
+	// DefaultFlushInterval is the default time interval between flushes
+	DefaultFlushInterval = 10 * time.Second
+	// DefaultWorkerPoolSize is the default number of worker goroutines
+	DefaultWorkerPoolSize = 10
+	// DefaultMaxQueueSize is the default maximum number of pending batches
+	DefaultMaxQueueSize = 100
+)
+
+// TelemetryStats contains telemetry health and performance metrics
+type TelemetryStats struct {
+	BatchesSent     int64
+	BatchesFailed   int64
+	BatchesDropped  int64
+	MetricsSent     int64
+	MetricsDropped  int64
+	LastSuccessTime time.Time
+	LastErrorTime   time.Time
+	LastError       string
+}
+
 // TelemetryCollector implements the eventbus.Observability interface
 // and batches telemetry metrics to send to the remote lookhere server.
 type TelemetryCollector struct {
@@ -41,9 +64,14 @@ type TelemetryCollector struct {
 
 	mu      sync.Mutex
 	metrics []*ebuv1.TelemetryMetric
-	ctx     context.Context
-	cancel  context.CancelFunc
-	wg      sync.WaitGroup
+	stats   TelemetryStats
+
+	// Worker pool for sending batches
+	batchQueue chan []*ebuv1.TelemetryMetric
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 // NewTelemetryCollector creates a new telemetry collector that sends metrics
@@ -52,13 +80,20 @@ func NewTelemetryCollector(httpClient *http.Client, baseURL, apiKey string) *Tel
 	ctx, cancel := context.WithCancel(context.Background())
 
 	tc := &TelemetryCollector{
-		client:    ebuv1connect.NewEventServiceClient(httpClient, baseURL),
-		apiKey:    apiKey,
-		batchSize: 100,           // Default: send after 100 metrics
-		interval:  10 * time.Second, // Default: send every 10 seconds
-		metrics:   make([]*ebuv1.TelemetryMetric, 0, 100),
-		ctx:       ctx,
-		cancel:    cancel,
+		client:     ebuv1connect.NewEventServiceClient(httpClient, baseURL),
+		apiKey:     apiKey,
+		batchSize:  DefaultBatchSize,
+		interval:   DefaultFlushInterval,
+		metrics:    make([]*ebuv1.TelemetryMetric, 0, DefaultBatchSize),
+		batchQueue: make(chan []*ebuv1.TelemetryMetric, DefaultMaxQueueSize),
+		ctx:        ctx,
+		cancel:     cancel,
+	}
+
+	// Start worker pool
+	for i := 0; i < DefaultWorkerPoolSize; i++ {
+		tc.wg.Add(1)
+		go tc.worker()
 	}
 
 	// Start background goroutine to flush metrics periodically
@@ -66,6 +101,19 @@ func NewTelemetryCollector(httpClient *http.Client, baseURL, apiKey string) *Tel
 	go tc.flushLoop()
 
 	return tc
+}
+
+// worker processes batches from the queue
+func (tc *TelemetryCollector) worker() {
+	defer tc.wg.Done()
+	for {
+		select {
+		case batch := <-tc.batchQueue:
+			tc.sendBatch(batch)
+		case <-tc.ctx.Done():
+			return
+		}
+	}
 }
 
 // flushLoop periodically flushes metrics to the server
@@ -96,11 +144,30 @@ func (tc *TelemetryCollector) flush() {
 
 	// Take current batch and reset buffer
 	batch := tc.metrics
+	batchSize := int64(len(batch))
 	tc.metrics = make([]*ebuv1.TelemetryMetric, 0, tc.batchSize)
 	tc.mu.Unlock()
 
-	// Send to server (don't block if server is slow/down)
-	go tc.sendBatch(batch)
+	// Send to worker pool (non-blocking with backpressure)
+	select {
+	case tc.batchQueue <- batch:
+		// Successfully queued
+	default:
+		// Queue is full - drop batch and log
+		tc.mu.Lock()
+		tc.stats.BatchesDropped++
+		tc.stats.MetricsDropped += batchSize
+		tc.mu.Unlock()
+		log.Printf("lookhere: telemetry queue full, dropping batch of %d metrics", batchSize)
+	}
+}
+
+// Stats returns a copy of the current telemetry statistics.
+// This method is safe for concurrent use.
+func (tc *TelemetryCollector) Stats() TelemetryStats {
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+	return tc.stats
 }
 
 // sendBatch sends a batch of metrics to the server
@@ -114,6 +181,11 @@ func (tc *TelemetryCollector) sendBatch(metrics []*ebuv1.TelemetryMetric) {
 	if err := stream.Send(&ebuv1.TelemetryBatch{
 		Metrics: metrics,
 	}); err != nil {
+		tc.mu.Lock()
+		tc.stats.BatchesFailed++
+		tc.stats.LastErrorTime = time.Now()
+		tc.stats.LastError = err.Error()
+		tc.mu.Unlock()
 		log.Printf("lookhere: failed to send telemetry batch: %v", err)
 		return
 	}
@@ -121,9 +193,21 @@ func (tc *TelemetryCollector) sendBatch(metrics []*ebuv1.TelemetryMetric) {
 	// Close stream and receive response
 	resp, err := stream.CloseAndReceive()
 	if err != nil {
+		tc.mu.Lock()
+		tc.stats.BatchesFailed++
+		tc.stats.LastErrorTime = time.Now()
+		tc.stats.LastError = err.Error()
+		tc.mu.Unlock()
 		log.Printf("lookhere: failed to receive telemetry response: %v", err)
 		return
 	}
+
+	// Update success stats
+	tc.mu.Lock()
+	tc.stats.BatchesSent++
+	tc.stats.MetricsSent += int64(len(metrics))
+	tc.stats.LastSuccessTime = time.Now()
+	tc.mu.Unlock()
 
 	if resp.Msg.ReceivedCount != int64(len(metrics)) {
 		log.Printf("lookhere: telemetry count mismatch: sent %d, server received %d",
@@ -134,16 +218,30 @@ func (tc *TelemetryCollector) sendBatch(metrics []*ebuv1.TelemetryMetric) {
 // addMetric adds a metric to the buffer and flushes if batch size is reached
 func (tc *TelemetryCollector) addMetric(metric *ebuv1.TelemetryMetric) {
 	tc.mu.Lock()
-	defer tc.mu.Unlock()
-
 	tc.metrics = append(tc.metrics, metric)
 
 	// Flush if batch size reached
 	if len(tc.metrics) >= tc.batchSize {
 		batch := tc.metrics
+		batchSize := int64(len(batch))
 		tc.metrics = make([]*ebuv1.TelemetryMetric, 0, tc.batchSize)
-		go tc.sendBatch(batch)
+		tc.mu.Unlock()
+
+		// Send to worker pool (non-blocking with backpressure)
+		select {
+		case tc.batchQueue <- batch:
+			// Successfully queued
+		default:
+			// Queue is full - drop batch and log
+			tc.mu.Lock()
+			tc.stats.BatchesDropped++
+			tc.stats.MetricsDropped += batchSize
+			tc.mu.Unlock()
+			log.Printf("lookhere: telemetry queue full, dropping batch of %d metrics", batchSize)
+		}
+		return
 	}
+	tc.mu.Unlock()
 }
 
 // Close stops the telemetry collector and flushes remaining metrics

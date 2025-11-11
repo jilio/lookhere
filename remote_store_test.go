@@ -278,6 +278,23 @@ func (m *mockEventService) LoadSubscriptionPosition(
 	}), nil
 }
 
+func (m *mockEventService) ReportTelemetry(
+	ctx context.Context,
+	stream *connect.ClientStream[ebuv1.TelemetryBatch],
+) (*connect.Response[ebuv1.TelemetryResponse], error) {
+	count := int64(0)
+	for stream.Receive() {
+		batch := stream.Msg()
+		count += int64(len(batch.Metrics))
+	}
+	if err := stream.Err(); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&ebuv1.TelemetryResponse{
+		ReceivedCount: count,
+	}), nil
+}
+
 func TestRemoteStore_Integration(t *testing.T) {
 	// Create mock service
 	mock := &mockEventService{

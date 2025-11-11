@@ -11,6 +11,22 @@ import (
 	eventbus "github.com/jilio/ebu"
 )
 
+// ValidateDSN validates a DSN without creating an option.
+// Use this to validate DSNs before passing them to WithCloud or MustWithCloud.
+//
+// Returns nil if the DSN is valid, or an error describing what's wrong.
+//
+// Example:
+//
+//	if err := lookhere.ValidateDSN(dsn); err != nil {
+//	    log.Fatalf("invalid DSN: %v", err)
+//	}
+//	bus := eventbus.New(lookhere.WithCloud(dsn))
+func ValidateDSN(dsn string) error {
+	_, _, _, err := parseDSN(dsn)
+	return err
+}
+
 // WithCloud returns an eventbus option that configures the EventBus to use
 // a remote LOOKHERE cloud storage backend with automatic telemetry collection.
 //
@@ -19,7 +35,18 @@ import (
 // By default, telemetry is enabled and sends observability metrics to the
 // lookhere SaaS platform. To disable telemetry, add ?telemetry=false to the DSN.
 //
-// Example:
+// IMPORTANT: This function panics if the DSN is invalid. For error handling,
+// use ValidateDSN() first, or use this in contexts where panic is acceptable
+// (e.g., initialization code with hardcoded DSNs).
+//
+// Example with validation:
+//
+//	if err := lookhere.ValidateDSN(dsn); err != nil {
+//	    return fmt.Errorf("invalid DSN: %w", err)
+//	}
+//	bus := eventbus.New(lookhere.WithCloud(dsn))
+//
+// Example without validation (panics on invalid DSN):
 //
 //	bus := eventbus.New(
 //	    lookhere.WithCloud("grpc://V1StGXR8_Z5jdHi6B-myT@lookhere.tech"),
@@ -30,8 +57,6 @@ import (
 //	bus := eventbus.New(
 //	    lookhere.WithCloud("grpc://V1StGXR8_Z5jdHi6B-myT@lookhere.tech?telemetry=false"),
 //	)
-//
-// Note: If DSN parsing fails, this will panic. Validate your DSN before using it.
 func WithCloud(dsn string) eventbus.Option {
 	// Parse DSN upfront (will panic if invalid)
 	apiKey, host, telemetryEnabled, err := parseDSN(dsn)
