@@ -177,6 +177,9 @@ func (tc *TelemetryCollector) sendBatch(metrics []*ebuv1.TelemetryMetric) {
 
 	stream := tc.client.ReportTelemetry(ctx)
 
+	// Set authorization header
+	stream.RequestHeader().Set("Authorization", "Bearer "+tc.apiKey)
+
 	// Send batch
 	if err := stream.Send(&ebuv1.TelemetryBatch{
 		Metrics: metrics,

@@ -880,3 +880,62 @@ func TestTelemetryCollector_Backpressure_DropsInAddMetric(t *testing.T) {
 		t.Error("expected at least one metric dropped in addMetric when queue is full")
 	}
 }
+
+func TestTelemetryCollector_SendsAuthorizationHeader(t *testing.T) {
+	// Create a mock server that captures headers
+	var receivedAuth string
+	mockService := &mockEventServiceWithAuthCapture{
+		authCapture: &receivedAuth,
+	}
+	mux := http.NewServeMux()
+	mux.Handle(ebuv1connect.NewEventServiceHandler(mockService))
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, server.URL, "test-api-key-123")
+	defer collector.Close()
+
+	// Add and send a metric
+	ctx := context.Background()
+	ctx = collector.OnPublishStart(ctx, "test.event")
+	collector.OnPublishComplete(ctx, "test.event")
+
+	// Force flush
+	collector.flush()
+
+	// Wait for processing
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify Authorization header was sent
+	expectedAuth := "Bearer test-api-key-123"
+	if receivedAuth != expectedAuth {
+		t.Errorf("expected Authorization header %q, got %q", expectedAuth, receivedAuth)
+	}
+}
+
+// mockEventServiceWithAuthCapture captures the Authorization header
+type mockEventServiceWithAuthCapture struct {
+	ebuv1connect.UnimplementedEventServiceHandler
+	authCapture *string
+}
+
+func (m *mockEventServiceWithAuthCapture) ReportTelemetry(
+	ctx context.Context,
+	stream *connect.ClientStream[ebuv1.TelemetryBatch],
+) (*connect.Response[ebuv1.TelemetryResponse], error) {
+	// Capture authorization header
+	*m.authCapture = stream.RequestHeader().Get("Authorization")
+
+	count := int64(0)
+	for stream.Receive() {
+		batch := stream.Msg()
+		count += int64(len(batch.Metrics))
+	}
+	if err := stream.Err(); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&ebuv1.TelemetryResponse{
+		ReceivedCount: count,
+	}), nil
+}
