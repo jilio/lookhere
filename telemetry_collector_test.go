@@ -737,3 +737,205 @@ func (m *mockEventServiceWithError) ReportTelemetry(
 	// Return an error
 	return nil, connect.NewError(connect.CodeInternal, errors.New("mock server error"))
 }
+
+func TestTelemetryCollector_Stats(t *testing.T) {
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
+	defer collector.Close()
+
+	// Initial stats should be zero
+	stats := collector.Stats()
+	if stats.BatchesSent != 0 {
+		t.Errorf("expected 0 batches sent, got %d", stats.BatchesSent)
+	}
+	if stats.BatchesFailed != 0 {
+		t.Errorf("expected 0 batches failed, got %d", stats.BatchesFailed)
+	}
+	if stats.MetricsSent != 0 {
+		t.Errorf("expected 0 metrics sent, got %d", stats.MetricsSent)
+	}
+}
+
+func TestTelemetryCollector_Stats_AfterSuccess(t *testing.T) {
+	// Create a mock server that accepts metrics
+	mux := http.NewServeMux()
+	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockEventService{}))
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, server.URL, "test-key")
+	defer collector.Close()
+
+	// Add some metrics
+	ctx := context.Background()
+	ctx = collector.OnPublishStart(ctx, "test.event")
+	collector.OnPublishComplete(ctx, "test.event")
+
+	// Force flush
+	collector.flush()
+
+	// Wait for batch to be processed
+	time.Sleep(100 * time.Millisecond)
+
+	// Check stats
+	stats := collector.Stats()
+	if stats.BatchesSent == 0 {
+		t.Error("expected at least 1 batch sent")
+	}
+	if stats.MetricsSent == 0 {
+		t.Error("expected at least 1 metric sent")
+	}
+	if stats.LastSuccessTime.IsZero() {
+		t.Error("expected LastSuccessTime to be set")
+	}
+}
+
+func TestTelemetryCollector_Stats_AfterError(t *testing.T) {
+	// Create a mock server that returns errors
+	mux := http.NewServeMux()
+	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockEventServiceWithError{}))
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, server.URL, "test-key")
+	defer collector.Close()
+
+	// Add a metric
+	ctx := context.Background()
+	ctx = collector.OnPublishStart(ctx, "test.event")
+	collector.OnPublishComplete(ctx, "test.event")
+
+	// Force flush
+	collector.flush()
+
+	// Wait for batch to be processed
+	time.Sleep(100 * time.Millisecond)
+
+	// Check stats
+	stats := collector.Stats()
+	if stats.BatchesFailed == 0 {
+		t.Error("expected at least 1 batch failed")
+	}
+	if stats.LastError == "" {
+		t.Error("expected LastError to be set")
+	}
+	if stats.LastErrorTime.IsZero() {
+		t.Error("expected LastErrorTime to be set")
+	}
+}
+
+func TestTelemetryCollector_Backpressure_DropsWhenQueueFull(t *testing.T) {
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
+	// Override with zero-buffer queue
+	collector.batchQueue = make(chan []*ebuv1.TelemetryMetric, 0) // No buffer
+	defer collector.Close()
+
+	// Add metrics to buffer
+	ctx := context.Background()
+	ctx = collector.OnPublishStart(ctx, "test.event")
+	collector.OnPublishComplete(ctx, "test.event")
+
+	// Try to flush multiple times rapidly - should drop because channel is unbuffered
+	// and workers aren't processing
+	collector.flush() // First one might queue
+	collector.flush() // This should drop (channel full, no buffer)
+
+	// Check stats
+	stats := collector.Stats()
+	if stats.BatchesDropped == 0 {
+		t.Error("expected at least one batch dropped when queue is full")
+	}
+	if stats.MetricsDropped == 0 {
+		t.Error("expected at least one metric dropped when queue is full")
+	}
+}
+
+func TestTelemetryCollector_Backpressure_DropsInAddMetric(t *testing.T) {
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
+	// Override with zero-buffer queue and small batch size
+	collector.batchQueue = make(chan []*ebuv1.TelemetryMetric, 0) // No buffer
+	collector.batchSize = 5                                        // Small batch
+	defer collector.Close()
+
+	// Add enough metrics to trigger batch size flush in addMetric
+	ctx := context.Background()
+	for i := 0; i < 10; i++ { // Add twice the batch size
+		ctx = collector.OnPublishStart(ctx, "test.event")
+		collector.OnPublishComplete(ctx, "test.event")
+	}
+
+	// Wait a moment for processing
+	time.Sleep(50 * time.Millisecond)
+
+	// Check stats - should have dropped some batches when addMetric hit batchSize
+	stats := collector.Stats()
+	if stats.BatchesDropped == 0 {
+		t.Error("expected at least one batch dropped in addMetric when queue is full")
+	}
+	if stats.MetricsDropped == 0 {
+		t.Error("expected at least one metric dropped in addMetric when queue is full")
+	}
+}
+
+func TestTelemetryCollector_SendsAuthorizationHeader(t *testing.T) {
+	// Create a mock server that captures headers
+	var receivedAuth string
+	mockService := &mockEventServiceWithAuthCapture{
+		authCapture: &receivedAuth,
+	}
+	mux := http.NewServeMux()
+	mux.Handle(ebuv1connect.NewEventServiceHandler(mockService))
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, server.URL, "test-api-key-123")
+	defer collector.Close()
+
+	// Add and send a metric
+	ctx := context.Background()
+	ctx = collector.OnPublishStart(ctx, "test.event")
+	collector.OnPublishComplete(ctx, "test.event")
+
+	// Force flush
+	collector.flush()
+
+	// Wait for processing
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify Authorization header was sent
+	expectedAuth := "Bearer test-api-key-123"
+	if receivedAuth != expectedAuth {
+		t.Errorf("expected Authorization header %q, got %q", expectedAuth, receivedAuth)
+	}
+}
+
+// mockEventServiceWithAuthCapture captures the Authorization header
+type mockEventServiceWithAuthCapture struct {
+	ebuv1connect.UnimplementedEventServiceHandler
+	authCapture *string
+}
+
+func (m *mockEventServiceWithAuthCapture) ReportTelemetry(
+	ctx context.Context,
+	stream *connect.ClientStream[ebuv1.TelemetryBatch],
+) (*connect.Response[ebuv1.TelemetryResponse], error) {
+	// Capture authorization header
+	*m.authCapture = stream.RequestHeader().Get("Authorization")
+
+	count := int64(0)
+	for stream.Receive() {
+		batch := stream.Msg()
+		count += int64(len(batch.Metrics))
+	}
+	if err := stream.Err(); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&ebuv1.TelemetryResponse{
+		ReceivedCount: count,
+	}), nil
+}

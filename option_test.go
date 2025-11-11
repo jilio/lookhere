@@ -1,18 +1,62 @@
 package lookhere
 
 import (
+	"strings"
 	"testing"
 
 	eventbus "github.com/jilio/ebu"
 )
 
+func TestValidateDSN(t *testing.T) {
+	tests := []struct {
+		name    string
+		dsn     string
+		wantErr bool
+	}{
+		{
+			name:    "valid DSN",
+			dsn:     "grpc://test-key@lookhere.tech",
+			wantErr: false,
+		},
+		{
+			name:    "valid DSN with telemetry param",
+			dsn:     "grpc://test-key@lookhere.tech?telemetry=false",
+			wantErr: false,
+		},
+		{
+			name:    "invalid scheme",
+			dsn:     "http://test-key@lookhere.tech",
+			wantErr: true,
+		},
+		{
+			name:    "missing API key",
+			dsn:     "grpc://lookhere.tech",
+			wantErr: true,
+		},
+		{
+			name:    "empty DSN",
+			dsn:     "",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateDSN(tt.dsn)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateDSN() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestParseDSN_Valid(t *testing.T) {
 	tests := []struct {
-		name                  string
-		dsn                   string
-		expectedAPIKey        string
-		expectedHost          string
-		expectedTelemetry     bool
+		name              string
+		dsn               string
+		expectedAPIKey    string
+		expectedHost      string
+		expectedTelemetry bool
 	}{
 		{
 			name:              "grpc with domain",
@@ -134,24 +178,11 @@ func TestParseDSN_Invalid(t *testing.T) {
 				t.Fatal("expected error, got nil")
 			}
 			// Just check that error contains the expected part
-			if !containsString(err.Error(), tt.expectedErrPart) {
+			if !strings.Contains(err.Error(), tt.expectedErrPart) {
 				t.Errorf("expected error containing %q, got %q", tt.expectedErrPart, err.Error())
 			}
 		})
 	}
-}
-
-func containsString(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || findSubstring(s, substr)))
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
 
 func TestWithCloud_ValidDSN(t *testing.T) {
@@ -209,7 +240,7 @@ func TestWithCloud_InvalidDSN_Panics(t *testing.T) {
 					t.Fatal("expected non-empty panic message")
 				}
 				// Check that panic message mentions "lookhere.WithCloud"
-				if !containsString(panicMsg, "lookhere.WithCloud") {
+				if !strings.Contains(panicMsg, "lookhere.WithCloud") {
 					t.Errorf("expected panic message to contain 'lookhere.WithCloud', got %q", panicMsg)
 				}
 			}()
@@ -270,11 +301,11 @@ func TestParseDSN_SchemeInference(t *testing.T) {
 			}
 
 			if tt.expectedHTTP == "http" {
-				if !containsString(fullHost, "http://") {
+				if !strings.Contains(fullHost, "http://") {
 					t.Errorf("expected http scheme, got %q", fullHost)
 				}
 			} else {
-				if !containsString(fullHost, "https://") {
+				if !strings.Contains(fullHost, "https://") {
 					t.Errorf("expected https scheme, got %q", fullHost)
 				}
 			}

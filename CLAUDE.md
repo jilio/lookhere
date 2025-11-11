@@ -2,36 +2,19 @@
 
 ## Commit Message Format
 
-When creating commits, use the following format:
+- One-line, lowercase, conventional commits
 
-**Format:** One-line, lowercase, conventional commits without Claude attribution
+## Before Creating Pull Requests
 
-**Examples:**
-```
-add automatic telemetry collection from ebu
-fix context key type mismatch in telemetry collector
-update readme with telemetry documentation
-refactor http client to be shared between store and telemetry
-test: achieve 100% coverage for telemetry collector
-```
+Before creating any pull request, you MUST:
 
-**Rules:**
-- Use conventional commit types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, etc.
-- All lowercase (no capitalization)
-- Single line summary (no body unless absolutely necessary)
-- No emoji
-- No "Generated with Claude Code" attribution
-- No "Co-Authored-By: Claude" attribution
-- Be concise and descriptive
+1. Run `go fmt ./...` to format all Go code
+2. Run tests with `go test ./...` to ensure all tests pass
+3. Check test coverage with `go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out`
 
-**DO NOT use:**
-- ❌ Multi-line commit messages with bodies
-- ❌ Claude attribution footers
-- ❌ Emoji in commit messages
-- ❌ Capitalized first letter
-- ❌ Period at the end of the summary
+## Code Quality Standards
 
-**DO use:**
-- ✅ Conventional commit prefixes when applicable
-- ✅ Imperative mood ("add" not "added")
-- ✅ Clear, concise description of changes
+- Maintain 100% test coverage for core functionality
+- Follow Go idioms and best practices
+- Use the options pattern for configuration where appropriate
+- Keep implementations simple and focused
