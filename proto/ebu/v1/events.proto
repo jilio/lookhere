@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package ebu.v1;
+
+option go_package = "github.com/jilio/kebu/gen/ebu/v1;ebuv1";
+
+import "google/protobuf/timestamp.proto";
+
+// EventService handles event streaming
+service EventService {
+  // SaveEvent saves a single event to storage
+  rpc SaveEvent(SaveEventRequest) returns (SaveEventResponse);
+
+  // LoadEvents loads events from storage within a position range
+  rpc LoadEvents(LoadEventsRequest) returns (LoadEventsResponse);
+
+  // GetPosition returns the current position (highest event number)
+  rpc GetPosition(GetPositionRequest) returns (GetPositionResponse);
+
+  // SaveSubscriptionPosition saves a subscription's position for resumable subscriptions
+  rpc SaveSubscriptionPosition(SaveSubscriptionPositionRequest) returns (SaveSubscriptionPositionResponse);
+
+  // LoadSubscriptionPosition loads a subscription's saved position
+  rpc LoadSubscriptionPosition(LoadSubscriptionPositionRequest) returns (LoadSubscriptionPositionResponse);
+}
+
+// StoredEvent represents an event in persistent storage
+message StoredEvent {
+  int64 position = 1;
+  string type = 2;
+  bytes data = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// SaveEvent request/response
+message SaveEventRequest {
+  StoredEvent event = 1;
+}
+
+message SaveEventResponse {
+  int64 position = 1;
+}
+
+// LoadEvents request/response
+message LoadEventsRequest {
+  int64 from = 1;
+  int64 to = 2;
+}
+
+message LoadEventsResponse {
+  repeated StoredEvent events = 1;
+}
+
+// GetPosition request/response
+message GetPositionRequest {}
+
+message GetPositionResponse {
+  int64 position = 1;
+}
+
+// SaveSubscriptionPosition request/response
+message SaveSubscriptionPositionRequest {
+  string subscription_id = 1;
+  int64 position = 2;
+}
+
+message SaveSubscriptionPositionResponse {}
+
+// LoadSubscriptionPosition request/response
+message LoadSubscriptionPositionRequest {
+  string subscription_id = 1;
+}
+
+message LoadSubscriptionPositionResponse {
+  int64 position = 1;
+}
