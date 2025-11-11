@@ -1,14 +1,14 @@
-# LOOKHERE - Go Client Library
+# lookhere
 
-[![Go Version](https://img.shields.io/badge/go-1.24.2+-blue.svg)](https://golang.org/doc/go1.24)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Go Reference](https://pkg.go.dev/badge/github.com/jilio/lookhere.svg)](https://pkg.go.dev/github.com/jilio/lookhere)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jilio/lookhere)](https://goreportcard.com/report/github.com/jilio/lookhere)
+[![codecov](https://codecov.io/gh/jilio/lookhere/branch/main/graph/badge.svg)](https://codecov.io/gh/jilio/lookhere)
 
-Official Go client library for [LOOKHERE](https://lookhere.tech) - Event sourcing as a service.
+Official Go client library for [lookhere](https://lookhere.tech) - Event sourcing as a service.
 
 ## Overview
 
-LOOKHERE provides cloud-based event storage for Go applications using the [github.com/jilio/ebu](https://github.com/jilio/ebu) event sourcing library. This client library allows you to seamlessly persist your event-sourced applications to LOOKHERE's managed infrastructure.
+lookhere provides cloud-based event storage for Go applications using the [github.com/jilio/ebu](https://github.com/jilio/ebu) event sourcing library. This client library allows you to seamlessly persist your event-sourced applications to lookhere's managed infrastructure.
 
 ## Installation
 
@@ -34,12 +34,12 @@ import (
 )
 
 func main() {
-    // Connect to LOOKHERE cloud storage
+    // Connect to lookhere cloud storage
     dsn := "grpc://your-api-key@lookhere.tech"
     bus := eventbus.New(lookhere.WithCloud(dsn))
     
     // Use the EventBus as normal - events are automatically persisted
-    // to LOOKHERE cloud storage
+    // to lookhere cloud storage
 }
 ```
 
@@ -53,8 +53,8 @@ grpc://API_KEY@HOST[:PORT]
 
 **Components:**
 - `grpc://` - Required scheme
-- `API_KEY` - Your LOOKHERE API key (get one at https://lookhere.tech)
-- `HOST` - LOOKHERE server hostname (e.g., `lookhere.tech`)
+- `API_KEY` - Your lookhere API key (get one at https://lookhere.tech)
+- `HOST` - lookhere server hostname (e.g., `lookhere.tech`)
 - `PORT` - Optional port number
 
 **Examples:**
@@ -87,7 +87,7 @@ type UserCreated struct {
 }
 
 func main() {
-    // Initialize EventBus with LOOKHERE cloud storage
+    // Initialize EventBus with lookhere cloud storage
     dsn := "grpc://your-api-key@lookhere.tech"
     bus := eventbus.New(lookhere.WithCloud(dsn))
     
@@ -107,7 +107,7 @@ func main() {
 ### Error Handling
 
 ```go
-func connectToLOOKHERE(dsn string) (*eventbus.EventBus, error) {
+func connectToLookhere(dsn string) (*eventbus.EventBus, error) {
     // Note: WithCloud panics on invalid DSN, so validate first
     defer func() {
         if r := recover(); r != nil {
@@ -161,7 +161,7 @@ bus := eventbus.New(option)
 Creates a remote EventStore client (advanced usage).
 
 **Parameters:**
-- `host` - Full URL to LOOKHERE server (e.g., "https://lookhere.tech")
+- `host` - Full URL to lookhere server (e.g., "https://lookhere.tech")
 - `apiKey` - Your API key
 
 **Returns:**
@@ -215,7 +215,7 @@ The HTTP client includes secure defaults:
 ### Environment Variables
 
 ```bash
-# Set your LOOKHERE connection string
+# Set your lookhere connection string
 export LOOKHERE_DSN="grpc://your-api-key@lookhere.tech"
 ```
 
@@ -252,7 +252,7 @@ dsn := "grpc://your-api-key@lookhere.tech"
 
 If you're experiencing timeouts, check:
 1. Your network connection
-2. LOOKHERE service status at https://status.lookhere.tech
+2. lookhere service status at https://status.lookhere.tech
 3. Your API key is valid
 4. No firewall blocking HTTPS traffic
 
@@ -318,8 +318,4 @@ MIT License - see [LICENSE](LICENSE) file for details
 ## Related Projects
 
 - [github.com/jilio/ebu](https://github.com/jilio/ebu) - Core event sourcing library
-- [LOOKHERE SaaS](https://lookhere.tech) - Managed event storage service
-
----
-
-**Made with ❤️ by the LOOKHERE team**
+- [lookhere SaaS](https://lookhere.tech) - Managed event storage service
