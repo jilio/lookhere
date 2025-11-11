@@ -41,7 +41,9 @@ jobs:
         go-version: '1.24'
     
     - name: Generate coverage report
-      run: go test -v -coverprofile=coverage.out -coverpkg=./... $(go list ./... | grep -v '/gen/')
+      run: |
+        PACKAGES=$(go list ./... | grep -v '/gen/')
+        go test -v -coverprofile=coverage.out -coverpkg=$(echo $PACKAGES | tr ' ' ',') $PACKAGES
     
     - name: Upload coverage reports
       uses: ncruces/go-coverage-report@v0
