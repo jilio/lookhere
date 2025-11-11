@@ -572,9 +572,7 @@ const file_ebu_v1_events_proto_rawDesc = "" +
 	"LoadEvents\x12\x19.ebu.v1.LoadEventsRequest\x1a\x1a.ebu.v1.LoadEventsResponse\x12F\n" +
 	"\vGetPosition\x12\x1a.ebu.v1.GetPositionRequest\x1a\x1b.ebu.v1.GetPositionResponse\x12m\n" +
 	"\x18SaveSubscriptionPosition\x12'.ebu.v1.SaveSubscriptionPositionRequest\x1a(.ebu.v1.SaveSubscriptionPositionResponse\x12m\n" +
-	"\x18LoadSubscriptionPosition\x12'.ebu.v1.LoadSubscriptionPositionRequest\x1a(.ebu.v1.LoadSubscriptionPositionResponseBz\n" +
-	"\n" +
-	"com.ebu.v1B\vEventsProtoP\x01Z&github.com/jilio/kebu/gen/ebu/v1;ebuv1\xa2\x02\x03EXX\xaa\x02\x06Ebu.V1\xca\x02\x06Ebu\\V1\xe2\x02\x12Ebu\\V1\\GPBMetadata\xea\x02\aEbu::V1b\x06proto3"
+	"\x18LoadSubscriptionPosition\x12'.ebu.v1.LoadSubscriptionPositionRequest\x1a(.ebu.v1.LoadSubscriptionPositionResponseB,Z*github.com/jilio/lookhere/gen/ebu/v1;ebuv1b\x06proto3"
 
 var (
 	file_ebu_v1_events_proto_rawDescOnce sync.Once

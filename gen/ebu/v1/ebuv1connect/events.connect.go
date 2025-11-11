@@ -8,7 +8,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v1 "github.com/jilio/kebu/gen/ebu/v1"
+	v1 "github.com/jilio/lookhere/gen/ebu/v1"
 	http "net/http"
 	strings "strings"
 )

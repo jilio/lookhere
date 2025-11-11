@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ebu.v1;
 
-option go_package = "github.com/jilio/kebu/gen/ebu/v1;ebuv1";
+option go_package = "github.com/jilio/lookhere/gen/ebu/v1;ebuv1";
 
 import "google/protobuf/timestamp.proto";
 
