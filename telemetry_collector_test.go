@@ -852,3 +852,31 @@ func TestTelemetryCollector_Backpressure_DropsWhenQueueFull(t *testing.T) {
 		t.Error("expected at least one metric dropped when queue is full")
 	}
 }
+
+func TestTelemetryCollector_Backpressure_DropsInAddMetric(t *testing.T) {
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
+	// Override with zero-buffer queue and small batch size
+	collector.batchQueue = make(chan []*ebuv1.TelemetryMetric, 0) // No buffer
+	collector.batchSize = 5                                        // Small batch
+	defer collector.Close()
+
+	// Add enough metrics to trigger batch size flush in addMetric
+	ctx := context.Background()
+	for i := 0; i < 10; i++ { // Add twice the batch size
+		ctx = collector.OnPublishStart(ctx, "test.event")
+		collector.OnPublishComplete(ctx, "test.event")
+	}
+
+	// Wait a moment for processing
+	time.Sleep(50 * time.Millisecond)
+
+	// Check stats - should have dropped some batches when addMetric hit batchSize
+	stats := collector.Stats()
+	if stats.BatchesDropped == 0 {
+		t.Error("expected at least one batch dropped in addMetric when queue is full")
+	}
+	if stats.MetricsDropped == 0 {
+		t.Error("expected at least one metric dropped in addMetric when queue is full")
+	}
+}
