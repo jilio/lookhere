@@ -22,6 +22,9 @@ service EventService {
 
   // LoadSubscriptionPosition loads a subscription's saved position
   rpc LoadSubscriptionPosition(LoadSubscriptionPositionRequest) returns (LoadSubscriptionPositionResponse);
+
+  // ReportTelemetry accepts a stream of telemetry batches from the client
+  rpc ReportTelemetry(stream TelemetryBatch) returns (TelemetryResponse);
 }
 
 // StoredEvent represents an event in persistent storage
@@ -73,4 +76,48 @@ message LoadSubscriptionPositionRequest {
 
 message LoadSubscriptionPositionResponse {
   int64 position = 1;
+}
+
+// Telemetry messages for observability
+
+// TelemetryBatch contains a batch of telemetry metrics
+message TelemetryBatch {
+  repeated TelemetryMetric metrics = 1;
+}
+
+// TelemetryMetric represents a single observability metric from EBU
+message TelemetryMetric {
+  google.protobuf.Timestamp timestamp = 1;
+  oneof metric {
+    PublishMetric publish = 2;
+    HandlerMetric handler = 3;
+    PersistMetric persist = 4;
+  }
+}
+
+// PublishMetric tracks event publishing
+message PublishMetric {
+  string event_type = 1;
+  int64 duration_ns = 2; // Duration in nanoseconds
+}
+
+// HandlerMetric tracks event handler execution
+message HandlerMetric {
+  string event_type = 1;
+  bool async = 2; // Whether handler was async
+  int64 duration_ns = 3; // Duration in nanoseconds
+  string error = 4; // Error message if handler failed (empty if success)
+}
+
+// PersistMetric tracks event persistence operations
+message PersistMetric {
+  string event_type = 1;
+  int64 position = 2; // Event position in storage
+  int64 duration_ns = 3; // Duration in nanoseconds
+  string error = 4; // Error message if persist failed (empty if success)
+}
+
+// TelemetryResponse acknowledges telemetry receipt
+message TelemetryResponse {
+  int64 received_count = 1; // Number of metrics received
 }

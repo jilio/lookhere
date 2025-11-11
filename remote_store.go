@@ -21,6 +21,7 @@ type RemoteStore struct {
 }
 
 // NewRemoteStore creates a new remote EventStore client with secure defaults
+// Deprecated: Use NewRemoteStoreWithClient to share HTTP client configuration
 func NewRemoteStore(host, apiKey string) *RemoteStore {
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second, // Overall request timeout
@@ -35,6 +36,11 @@ func NewRemoteStore(host, apiKey string) *RemoteStore {
 			},
 		},
 	}
+	return NewRemoteStoreWithClient(httpClient, host, apiKey)
+}
+
+// NewRemoteStoreWithClient creates a new remote EventStore client with a provided HTTP client
+func NewRemoteStoreWithClient(httpClient *http.Client, host, apiKey string) *RemoteStore {
 	client := ebuv1connect.NewEventServiceClient(httpClient, host)
 
 	return &RemoteStore{

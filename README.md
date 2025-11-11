@@ -8,7 +8,14 @@ Official Go client library for [lookhere](https://lookhere.tech) - Event sourcin
 
 ## Overview
 
-lookhere provides cloud-based event storage for Go applications using the [github.com/jilio/ebu](https://github.com/jilio/ebu) event sourcing library. This client library allows you to seamlessly persist your event-sourced applications to lookhere's managed infrastructure.
+lookhere provides cloud-based event storage and observability for Go applications using the [github.com/jilio/ebu](https://github.com/jilio/ebu) event sourcing library. This client library allows you to seamlessly persist your event-sourced applications to lookhere's managed infrastructure with automatic telemetry collection.
+
+**Key Features:**
+- ✅ Cloud-based event storage
+- ✅ Automatic telemetry collection
+- ✅ Zero-config observability
+- ✅ Secure TLS 1.2+ connections
+- ✅ Connection pooling and keep-alive
 
 ## Installation
 
@@ -48,7 +55,7 @@ func main() {
 The connection string (DSN) follows this format:
 
 ```
-grpc://API_KEY@HOST[:PORT]
+grpc://API_KEY@HOST[:PORT][?telemetry=true|false]
 ```
 
 **Components:**
@@ -56,11 +63,15 @@ grpc://API_KEY@HOST[:PORT]
 - `API_KEY` - Your lookhere API key (get one at https://lookhere.tech)
 - `HOST` - lookhere server hostname (e.g., `lookhere.tech`)
 - `PORT` - Optional port number
+- `telemetry` - Optional query parameter to enable/disable telemetry (default: `true`)
 
 **Examples:**
 ```go
-// Production
+// Production (telemetry enabled by default)
 "grpc://V1StGXR8_Z5jdHi6B-myT@lookhere.tech"
+
+// Production with telemetry explicitly disabled
+"grpc://V1StGXR8_Z5jdHi6B-myT@lookhere.tech?telemetry=false"
 
 // Development (localhost)
 "grpc://test-key@localhost:8080"
@@ -133,14 +144,68 @@ func publishWithTimeout(bus *eventbus.EventBus, event interface{}) error {
 }
 ```
 
+## Telemetry & Observability
+
+**By default, lookhere automatically collects telemetry** from your EventBus and sends it to the lookhere SaaS platform. This provides you with zero-config observability into your event-sourced application.
+
+### What Telemetry is Collected
+
+The following metrics are automatically collected:
+
+1. **Publish Metrics**
+   - Event type
+   - Publish duration
+   - Timestamp
+
+2. **Handler Metrics**
+   - Event type
+   - Handler execution duration
+   - Async vs sync handlers
+   - Error messages (if any)
+
+3. **Persistence Metrics**
+   - Event type
+   - Event position in storage
+   - Storage latency
+   - Error messages (if any)
+
+### Viewing Your Telemetry
+
+All telemetry is available in your lookhere dashboard at https://lookhere.tech/dashboard
+
+### Disabling Telemetry
+
+If you need to disable telemetry (for privacy, compliance, or testing), add `?telemetry=false` to your DSN:
+
+```go
+// Telemetry disabled
+dsn := "grpc://your-api-key@lookhere.tech?telemetry=false"
+bus := eventbus.New(lookhere.WithCloud(dsn))
+```
+
+### Privacy & Data Retention
+
+- **No sensitive data:** Telemetry does not include event payloads, only metadata
+- **Secure transmission:** All telemetry is sent over TLS 1.2+
+- **Data retention:** Telemetry is retained for 30 days by default
+- **GDPR compliant:** See https://lookhere.tech/privacy for details
+
+### Batching & Performance
+
+Telemetry is batched automatically to minimize network overhead:
+- **Batch size:** 100 metrics per batch (or less if interval expires)
+- **Flush interval:** 10 seconds
+- **Async sending:** Telemetry sending doesn't block event processing
+- **Failure handling:** Failed telemetry sends are logged but don't affect your app
+
 ## API Reference
 
 ### `WithCloud(dsn string) eventbus.Option`
 
-Creates an EventBus option that configures cloud storage.
+Creates an EventBus option that configures cloud storage with automatic telemetry.
 
 **Parameters:**
-- `dsn` - Connection string in format `grpc://api-key@host`
+- `dsn` - Connection string in format `grpc://api-key@host[?telemetry=true|false]`
 
 **Returns:**
 - `eventbus.Option` - Configuration option for EventBus

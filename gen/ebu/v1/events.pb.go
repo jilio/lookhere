@@ -536,6 +536,394 @@ func (x *LoadSubscriptionPositionResponse) GetPosition() int64 {
 	return 0
 }
 
+// TelemetryBatch contains a batch of telemetry metrics
+type TelemetryBatch struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Metrics       []*TelemetryMetric     `protobuf:"bytes,1,rep,name=metrics,proto3" json:"metrics,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TelemetryBatch) Reset() {
+	*x = TelemetryBatch{}
+	mi := &file_ebu_v1_events_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TelemetryBatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TelemetryBatch) ProtoMessage() {}
+
+func (x *TelemetryBatch) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TelemetryBatch.ProtoReflect.Descriptor instead.
+func (*TelemetryBatch) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *TelemetryBatch) GetMetrics() []*TelemetryMetric {
+	if x != nil {
+		return x.Metrics
+	}
+	return nil
+}
+
+// TelemetryMetric represents a single observability metric from EBU
+type TelemetryMetric struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Types that are valid to be assigned to Metric:
+	//
+	//	*TelemetryMetric_Publish
+	//	*TelemetryMetric_Handler
+	//	*TelemetryMetric_Persist
+	Metric        isTelemetryMetric_Metric `protobuf_oneof:"metric"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TelemetryMetric) Reset() {
+	*x = TelemetryMetric{}
+	mi := &file_ebu_v1_events_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TelemetryMetric) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TelemetryMetric) ProtoMessage() {}
+
+func (x *TelemetryMetric) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TelemetryMetric.ProtoReflect.Descriptor instead.
+func (*TelemetryMetric) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *TelemetryMetric) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *TelemetryMetric) GetMetric() isTelemetryMetric_Metric {
+	if x != nil {
+		return x.Metric
+	}
+	return nil
+}
+
+func (x *TelemetryMetric) GetPublish() *PublishMetric {
+	if x != nil {
+		if x, ok := x.Metric.(*TelemetryMetric_Publish); ok {
+			return x.Publish
+		}
+	}
+	return nil
+}
+
+func (x *TelemetryMetric) GetHandler() *HandlerMetric {
+	if x != nil {
+		if x, ok := x.Metric.(*TelemetryMetric_Handler); ok {
+			return x.Handler
+		}
+	}
+	return nil
+}
+
+func (x *TelemetryMetric) GetPersist() *PersistMetric {
+	if x != nil {
+		if x, ok := x.Metric.(*TelemetryMetric_Persist); ok {
+			return x.Persist
+		}
+	}
+	return nil
+}
+
+type isTelemetryMetric_Metric interface {
+	isTelemetryMetric_Metric()
+}
+
+type TelemetryMetric_Publish struct {
+	Publish *PublishMetric `protobuf:"bytes,2,opt,name=publish,proto3,oneof"`
+}
+
+type TelemetryMetric_Handler struct {
+	Handler *HandlerMetric `protobuf:"bytes,3,opt,name=handler,proto3,oneof"`
+}
+
+type TelemetryMetric_Persist struct {
+	Persist *PersistMetric `protobuf:"bytes,4,opt,name=persist,proto3,oneof"`
+}
+
+func (*TelemetryMetric_Publish) isTelemetryMetric_Metric() {}
+
+func (*TelemetryMetric_Handler) isTelemetryMetric_Metric() {}
+
+func (*TelemetryMetric_Persist) isTelemetryMetric_Metric() {}
+
+// PublishMetric tracks event publishing
+type PublishMetric struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventType     string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	DurationNs    int64                  `protobuf:"varint,2,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"` // Duration in nanoseconds
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PublishMetric) Reset() {
+	*x = PublishMetric{}
+	mi := &file_ebu_v1_events_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PublishMetric) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PublishMetric) ProtoMessage() {}
+
+func (x *PublishMetric) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PublishMetric.ProtoReflect.Descriptor instead.
+func (*PublishMetric) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *PublishMetric) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *PublishMetric) GetDurationNs() int64 {
+	if x != nil {
+		return x.DurationNs
+	}
+	return 0
+}
+
+// HandlerMetric tracks event handler execution
+type HandlerMetric struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventType     string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	Async         bool                   `protobuf:"varint,2,opt,name=async,proto3" json:"async,omitempty"`                             // Whether handler was async
+	DurationNs    int64                  `protobuf:"varint,3,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"` // Duration in nanoseconds
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`                              // Error message if handler failed (empty if success)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HandlerMetric) Reset() {
+	*x = HandlerMetric{}
+	mi := &file_ebu_v1_events_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HandlerMetric) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HandlerMetric) ProtoMessage() {}
+
+func (x *HandlerMetric) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HandlerMetric.ProtoReflect.Descriptor instead.
+func (*HandlerMetric) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *HandlerMetric) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *HandlerMetric) GetAsync() bool {
+	if x != nil {
+		return x.Async
+	}
+	return false
+}
+
+func (x *HandlerMetric) GetDurationNs() int64 {
+	if x != nil {
+		return x.DurationNs
+	}
+	return 0
+}
+
+func (x *HandlerMetric) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+// PersistMetric tracks event persistence operations
+type PersistMetric struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventType     string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	Position      int64                  `protobuf:"varint,2,opt,name=position,proto3" json:"position,omitempty"`                       // Event position in storage
+	DurationNs    int64                  `protobuf:"varint,3,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"` // Duration in nanoseconds
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`                              // Error message if persist failed (empty if success)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PersistMetric) Reset() {
+	*x = PersistMetric{}
+	mi := &file_ebu_v1_events_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PersistMetric) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PersistMetric) ProtoMessage() {}
+
+func (x *PersistMetric) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PersistMetric.ProtoReflect.Descriptor instead.
+func (*PersistMetric) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *PersistMetric) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *PersistMetric) GetPosition() int64 {
+	if x != nil {
+		return x.Position
+	}
+	return 0
+}
+
+func (x *PersistMetric) GetDurationNs() int64 {
+	if x != nil {
+		return x.DurationNs
+	}
+	return 0
+}
+
+func (x *PersistMetric) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+// TelemetryResponse acknowledges telemetry receipt
+type TelemetryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReceivedCount int64                  `protobuf:"varint,1,opt,name=received_count,json=receivedCount,proto3" json:"received_count,omitempty"` // Number of metrics received
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TelemetryResponse) Reset() {
+	*x = TelemetryResponse{}
+	mi := &file_ebu_v1_events_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TelemetryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TelemetryResponse) ProtoMessage() {}
+
+func (x *TelemetryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TelemetryResponse.ProtoReflect.Descriptor instead.
+func (*TelemetryResponse) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *TelemetryResponse) GetReceivedCount() int64 {
+	if x != nil {
+		return x.ReceivedCount
+	}
+	return 0
+}
+
 var File_ebu_v1_events_proto protoreflect.FileDescriptor
 
 const file_ebu_v1_events_proto_rawDesc = "" +
@@ -565,14 +953,44 @@ const file_ebu_v1_events_proto_rawDesc = "" +
 	"\x1fLoadSubscriptionPositionRequest\x12'\n" +
 	"\x0fsubscription_id\x18\x01 \x01(\tR\x0esubscriptionId\">\n" +
 	" LoadSubscriptionPositionResponse\x12\x1a\n" +
-	"\bposition\x18\x01 \x01(\x03R\bposition2\xbb\x03\n" +
+	"\bposition\x18\x01 \x01(\x03R\bposition\"C\n" +
+	"\x0eTelemetryBatch\x121\n" +
+	"\ametrics\x18\x01 \x03(\v2\x17.ebu.v1.TelemetryMetricR\ametrics\"\xee\x01\n" +
+	"\x0fTelemetryMetric\x128\n" +
+	"\ttimestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x121\n" +
+	"\apublish\x18\x02 \x01(\v2\x15.ebu.v1.PublishMetricH\x00R\apublish\x121\n" +
+	"\ahandler\x18\x03 \x01(\v2\x15.ebu.v1.HandlerMetricH\x00R\ahandler\x121\n" +
+	"\apersist\x18\x04 \x01(\v2\x15.ebu.v1.PersistMetricH\x00R\apersistB\b\n" +
+	"\x06metric\"O\n" +
+	"\rPublishMetric\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x01 \x01(\tR\teventType\x12\x1f\n" +
+	"\vduration_ns\x18\x02 \x01(\x03R\n" +
+	"durationNs\"{\n" +
+	"\rHandlerMetric\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x01 \x01(\tR\teventType\x12\x14\n" +
+	"\x05async\x18\x02 \x01(\bR\x05async\x12\x1f\n" +
+	"\vduration_ns\x18\x03 \x01(\x03R\n" +
+	"durationNs\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"\x81\x01\n" +
+	"\rPersistMetric\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x01 \x01(\tR\teventType\x12\x1a\n" +
+	"\bposition\x18\x02 \x01(\x03R\bposition\x12\x1f\n" +
+	"\vduration_ns\x18\x03 \x01(\x03R\n" +
+	"durationNs\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\":\n" +
+	"\x11TelemetryResponse\x12%\n" +
+	"\x0ereceived_count\x18\x01 \x01(\x03R\rreceivedCount2\x83\x04\n" +
 	"\fEventService\x12@\n" +
 	"\tSaveEvent\x12\x18.ebu.v1.SaveEventRequest\x1a\x19.ebu.v1.SaveEventResponse\x12C\n" +
 	"\n" +
 	"LoadEvents\x12\x19.ebu.v1.LoadEventsRequest\x1a\x1a.ebu.v1.LoadEventsResponse\x12F\n" +
 	"\vGetPosition\x12\x1a.ebu.v1.GetPositionRequest\x1a\x1b.ebu.v1.GetPositionResponse\x12m\n" +
 	"\x18SaveSubscriptionPosition\x12'.ebu.v1.SaveSubscriptionPositionRequest\x1a(.ebu.v1.SaveSubscriptionPositionResponse\x12m\n" +
-	"\x18LoadSubscriptionPosition\x12'.ebu.v1.LoadSubscriptionPositionRequest\x1a(.ebu.v1.LoadSubscriptionPositionResponseB,Z*github.com/jilio/lookhere/gen/ebu/v1;ebuv1b\x06proto3"
+	"\x18LoadSubscriptionPosition\x12'.ebu.v1.LoadSubscriptionPositionRequest\x1a(.ebu.v1.LoadSubscriptionPositionResponse\x12F\n" +
+	"\x0fReportTelemetry\x12\x16.ebu.v1.TelemetryBatch\x1a\x19.ebu.v1.TelemetryResponse(\x01B,Z*github.com/jilio/lookhere/gen/ebu/v1;ebuv1b\x06proto3"
 
 var (
 	file_ebu_v1_events_proto_rawDescOnce sync.Once
@@ -586,7 +1004,7 @@ func file_ebu_v1_events_proto_rawDescGZIP() []byte {
 	return file_ebu_v1_events_proto_rawDescData
 }
 
-var file_ebu_v1_events_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_ebu_v1_events_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_ebu_v1_events_proto_goTypes = []any{
 	(*StoredEvent)(nil),                      // 0: ebu.v1.StoredEvent
 	(*SaveEventRequest)(nil),                 // 1: ebu.v1.SaveEventRequest
@@ -599,27 +1017,40 @@ var file_ebu_v1_events_proto_goTypes = []any{
 	(*SaveSubscriptionPositionResponse)(nil), // 8: ebu.v1.SaveSubscriptionPositionResponse
 	(*LoadSubscriptionPositionRequest)(nil),  // 9: ebu.v1.LoadSubscriptionPositionRequest
 	(*LoadSubscriptionPositionResponse)(nil), // 10: ebu.v1.LoadSubscriptionPositionResponse
-	(*timestamppb.Timestamp)(nil),            // 11: google.protobuf.Timestamp
+	(*TelemetryBatch)(nil),                   // 11: ebu.v1.TelemetryBatch
+	(*TelemetryMetric)(nil),                  // 12: ebu.v1.TelemetryMetric
+	(*PublishMetric)(nil),                    // 13: ebu.v1.PublishMetric
+	(*HandlerMetric)(nil),                    // 14: ebu.v1.HandlerMetric
+	(*PersistMetric)(nil),                    // 15: ebu.v1.PersistMetric
+	(*TelemetryResponse)(nil),                // 16: ebu.v1.TelemetryResponse
+	(*timestamppb.Timestamp)(nil),            // 17: google.protobuf.Timestamp
 }
 var file_ebu_v1_events_proto_depIdxs = []int32{
-	11, // 0: ebu.v1.StoredEvent.timestamp:type_name -> google.protobuf.Timestamp
+	17, // 0: ebu.v1.StoredEvent.timestamp:type_name -> google.protobuf.Timestamp
 	0,  // 1: ebu.v1.SaveEventRequest.event:type_name -> ebu.v1.StoredEvent
 	0,  // 2: ebu.v1.LoadEventsResponse.events:type_name -> ebu.v1.StoredEvent
-	1,  // 3: ebu.v1.EventService.SaveEvent:input_type -> ebu.v1.SaveEventRequest
-	3,  // 4: ebu.v1.EventService.LoadEvents:input_type -> ebu.v1.LoadEventsRequest
-	5,  // 5: ebu.v1.EventService.GetPosition:input_type -> ebu.v1.GetPositionRequest
-	7,  // 6: ebu.v1.EventService.SaveSubscriptionPosition:input_type -> ebu.v1.SaveSubscriptionPositionRequest
-	9,  // 7: ebu.v1.EventService.LoadSubscriptionPosition:input_type -> ebu.v1.LoadSubscriptionPositionRequest
-	2,  // 8: ebu.v1.EventService.SaveEvent:output_type -> ebu.v1.SaveEventResponse
-	4,  // 9: ebu.v1.EventService.LoadEvents:output_type -> ebu.v1.LoadEventsResponse
-	6,  // 10: ebu.v1.EventService.GetPosition:output_type -> ebu.v1.GetPositionResponse
-	8,  // 11: ebu.v1.EventService.SaveSubscriptionPosition:output_type -> ebu.v1.SaveSubscriptionPositionResponse
-	10, // 12: ebu.v1.EventService.LoadSubscriptionPosition:output_type -> ebu.v1.LoadSubscriptionPositionResponse
-	8,  // [8:13] is the sub-list for method output_type
-	3,  // [3:8] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	12, // 3: ebu.v1.TelemetryBatch.metrics:type_name -> ebu.v1.TelemetryMetric
+	17, // 4: ebu.v1.TelemetryMetric.timestamp:type_name -> google.protobuf.Timestamp
+	13, // 5: ebu.v1.TelemetryMetric.publish:type_name -> ebu.v1.PublishMetric
+	14, // 6: ebu.v1.TelemetryMetric.handler:type_name -> ebu.v1.HandlerMetric
+	15, // 7: ebu.v1.TelemetryMetric.persist:type_name -> ebu.v1.PersistMetric
+	1,  // 8: ebu.v1.EventService.SaveEvent:input_type -> ebu.v1.SaveEventRequest
+	3,  // 9: ebu.v1.EventService.LoadEvents:input_type -> ebu.v1.LoadEventsRequest
+	5,  // 10: ebu.v1.EventService.GetPosition:input_type -> ebu.v1.GetPositionRequest
+	7,  // 11: ebu.v1.EventService.SaveSubscriptionPosition:input_type -> ebu.v1.SaveSubscriptionPositionRequest
+	9,  // 12: ebu.v1.EventService.LoadSubscriptionPosition:input_type -> ebu.v1.LoadSubscriptionPositionRequest
+	11, // 13: ebu.v1.EventService.ReportTelemetry:input_type -> ebu.v1.TelemetryBatch
+	2,  // 14: ebu.v1.EventService.SaveEvent:output_type -> ebu.v1.SaveEventResponse
+	4,  // 15: ebu.v1.EventService.LoadEvents:output_type -> ebu.v1.LoadEventsResponse
+	6,  // 16: ebu.v1.EventService.GetPosition:output_type -> ebu.v1.GetPositionResponse
+	8,  // 17: ebu.v1.EventService.SaveSubscriptionPosition:output_type -> ebu.v1.SaveSubscriptionPositionResponse
+	10, // 18: ebu.v1.EventService.LoadSubscriptionPosition:output_type -> ebu.v1.LoadSubscriptionPositionResponse
+	16, // 19: ebu.v1.EventService.ReportTelemetry:output_type -> ebu.v1.TelemetryResponse
+	14, // [14:20] is the sub-list for method output_type
+	8,  // [8:14] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ebu_v1_events_proto_init() }
@@ -627,13 +1058,18 @@ func file_ebu_v1_events_proto_init() {
 	if File_ebu_v1_events_proto != nil {
 		return
 	}
+	file_ebu_v1_events_proto_msgTypes[12].OneofWrappers = []any{
+		(*TelemetryMetric_Publish)(nil),
+		(*TelemetryMetric_Handler)(nil),
+		(*TelemetryMetric_Persist)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ebu_v1_events_proto_rawDesc), len(file_ebu_v1_events_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
