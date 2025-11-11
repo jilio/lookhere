@@ -2,7 +2,6 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/jilio/lookhere.svg)](https://pkg.go.dev/github.com/jilio/lookhere)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jilio/lookhere)](https://goreportcard.com/report/github.com/jilio/lookhere)
-[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/jilio/lookhere-coverage/raw/coverage.json)](https://github.com/jilio/lookhere/actions/workflows/test.yml)
 
 Official Go client library for [lookhere](https://lookhere.tech) - Event sourcing as a service.
 
