@@ -2,8 +2,10 @@ package lookhere
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
+	"time"
 
 	"connectrpc.com/connect"
 	eventbus "github.com/jilio/ebu"
@@ -12,15 +14,27 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// RemoteStore implements eventbus.EventStore by delegating to a remote Kebu server
+// RemoteStore implements eventbus.EventStore by delegating to a remote LOOKHERE server
 type RemoteStore struct {
 	client ebuv1connect.EventServiceClient
 	apiKey string
 }
 
-// NewRemoteStore creates a new remote EventStore client
+// NewRemoteStore creates a new remote EventStore client with secure defaults
 func NewRemoteStore(host, apiKey string) *RemoteStore {
-	httpClient := &http.Client{}
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second, // Overall request timeout
+		Transport: &http.Transport{
+			MaxIdleConns:          100,              // Maximum idle connections
+			MaxIdleConnsPerHost:   10,               // Maximum idle connections per host
+			IdleConnTimeout:       90 * time.Second, // How long idle connections stay open
+			TLSHandshakeTimeout:   10 * time.Second, // TLS handshake timeout
+			ResponseHeaderTimeout: 10 * time.Second, // Time to wait for response headers
+			TLSClientConfig: &tls.Config{
+				MinVersion: tls.VersionTLS12, // Enforce TLS 1.2+
+			},
+		},
+	}
 	client := ebuv1connect.NewEventServiceClient(httpClient, host)
 
 	return &RemoteStore{

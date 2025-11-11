@@ -8,4 +8,4 @@ require (
 	google.golang.org/protobuf v1.36.1
 )
 
-require golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
+require github.com/google/go-cmp v0.6.0 // indirect

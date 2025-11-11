@@ -9,14 +9,14 @@ import (
 )
 
 // WithCloud returns an eventbus option that configures the EventBus to use
-// a remote Kebu cloud storage backend.
+// a remote LOOKHERE cloud storage backend.
 //
 // The DSN format is: grpc://api-key@host
 //
 // Example:
 //
 //	bus := eventbus.New(
-//	    kebu.WithCloud("grpc://V1StGXR8_Z5jdHi6B-myT@kebu.example.com"),
+//	    lookhere.WithCloud("grpc://V1StGXR8_Z5jdHi6B-myT@lookhere.tech"),
 //	)
 //
 // Note: If DSN parsing fails, this will panic. Validate your DSN before using it.
@@ -24,7 +24,7 @@ func WithCloud(dsn string) eventbus.Option {
 	// Parse DSN upfront (will panic if invalid)
 	apiKey, host, err := parseDSN(dsn)
 	if err != nil {
-		panic(fmt.Sprintf("kebu.WithCloud: invalid DSN: %v", err))
+		panic(fmt.Sprintf("lookhere.WithCloud: invalid DSN: %v", err))
 	}
 
 	// Create remote EventStore
