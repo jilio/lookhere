@@ -3,10 +3,15 @@ package lookhere
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	connect "connectrpc.com/connect"
 	ebuv1 "github.com/jilio/lookhere/gen/ebu/v1"
+	"github.com/jilio/lookhere/gen/ebu/v1/ebuv1connect"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestNewTelemetryCollector(t *testing.T) {
@@ -533,4 +538,202 @@ func TestTelemetryCollector_EventTypePreserved(t *testing.T) {
 				i, testCases[i], publish.EventType)
 		}
 	}
+}
+
+func TestTelemetryCollector_FlushLoop_TickerFires(t *testing.T) {
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
+	// Set very short interval for testing
+	collector.interval = 50 * time.Millisecond
+	defer collector.Close()
+
+	// Add a metric
+	ctx := context.Background()
+	ctx = collector.OnPublishStart(ctx, "test.event")
+	collector.OnPublishComplete(ctx, "test.event")
+
+	// Verify metric is in buffer
+	collector.mu.Lock()
+	initialCount := len(collector.metrics)
+	collector.mu.Unlock()
+
+	if initialCount != 1 {
+		t.Fatalf("expected 1 metric in buffer, got %d", initialCount)
+	}
+
+	// Wait for ticker to fire and flush
+	time.Sleep(100 * time.Millisecond)
+
+	// Buffer should be cleared by ticker
+	collector.mu.Lock()
+	afterCount := len(collector.metrics)
+	collector.mu.Unlock()
+
+	if afterCount != 0 {
+		t.Errorf("expected 0 metrics after ticker flush, got %d", afterCount)
+	}
+}
+
+func TestTelemetryCollector_OnHandlerComplete_NoContext(t *testing.T) {
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
+	defer collector.Close()
+
+	// Complete without start - should not panic or add metric
+	ctx := context.Background()
+	collector.OnHandlerComplete(ctx, 1*time.Millisecond, nil)
+
+	// No metric should be added
+	collector.mu.Lock()
+	defer collector.mu.Unlock()
+
+	if len(collector.metrics) != 0 {
+		t.Errorf("expected 0 metrics, got %d", len(collector.metrics))
+	}
+}
+
+func TestTelemetryCollector_OnPersistComplete_NoContext(t *testing.T) {
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
+	defer collector.Close()
+
+	// Complete without start - should not panic or add metric
+	ctx := context.Background()
+	collector.OnPersistComplete(ctx, 1*time.Millisecond, nil)
+
+	// No metric should be added
+	collector.mu.Lock()
+	defer collector.mu.Unlock()
+
+	if len(collector.metrics) != 0 {
+		t.Errorf("expected 0 metrics, got %d", len(collector.metrics))
+	}
+}
+
+func TestTelemetryCollector_SendBatch_ErrorHandling(t *testing.T) {
+	httpClient := createHTTPClient()
+
+	// Test with invalid URL to trigger connection errors
+	collector := NewTelemetryCollector(httpClient, "http://localhost:1", "test-key")
+	defer collector.Close()
+
+	// Create a test metric
+	metric := &ebuv1.TelemetryMetric{
+		Timestamp: timestamppb.Now(),
+		Metric: &ebuv1.TelemetryMetric_Publish{
+			Publish: &ebuv1.PublishMetric{
+				EventType:  "test.event",
+				DurationNs: 1000000,
+			},
+		},
+	}
+
+	// Call sendBatch directly - this should log errors but not panic
+	// We can't easily verify the log output, but we verify it doesn't panic
+	collector.sendBatch([]*ebuv1.TelemetryMetric{metric})
+
+	// If we get here without panic, error handling worked
+}
+
+func TestTelemetryCollector_SendBatch_CountMismatch(t *testing.T) {
+	// Create a mock server that returns incorrect count
+	mux := http.NewServeMux()
+	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockEventServiceWithMismatch{}))
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, server.URL, "test-key")
+	defer collector.Close()
+
+	// Create test metrics
+	metrics := []*ebuv1.TelemetryMetric{
+		{
+			Timestamp: timestamppb.Now(),
+			Metric: &ebuv1.TelemetryMetric_Publish{
+				Publish: &ebuv1.PublishMetric{
+					EventType:  "test1",
+					DurationNs: 1000000,
+				},
+			},
+		},
+		{
+			Timestamp: timestamppb.Now(),
+			Metric: &ebuv1.TelemetryMetric_Publish{
+				Publish: &ebuv1.PublishMetric{
+					EventType:  "test2",
+					DurationNs: 2000000,
+				},
+			},
+		},
+	}
+
+	// Call sendBatch - should log count mismatch but not panic
+	collector.sendBatch(metrics)
+
+	// If we get here without panic, error handling worked
+}
+
+// mockEventServiceWithMismatch implements a partial EventService that returns wrong count
+type mockEventServiceWithMismatch struct {
+	ebuv1connect.UnimplementedEventServiceHandler
+}
+
+func (m *mockEventServiceWithMismatch) ReportTelemetry(
+	ctx context.Context,
+	stream *connect.ClientStream[ebuv1.TelemetryBatch],
+) (*connect.Response[ebuv1.TelemetryResponse], error) {
+	// Receive the batch
+	for stream.Receive() {
+		// Just consume, don't process
+	}
+	if stream.Err() != nil {
+		return nil, stream.Err()
+	}
+
+	// Return wrong count (1 instead of actual count)
+	return connect.NewResponse(&ebuv1.TelemetryResponse{
+		ReceivedCount: 1, // Always return 1 to trigger mismatch
+	}), nil
+}
+
+func TestTelemetryCollector_SendBatch_StreamError(t *testing.T) {
+	// Create a mock server that returns error on receive
+	mux := http.NewServeMux()
+	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockEventServiceWithError{}))
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	httpClient := createHTTPClient()
+	collector := NewTelemetryCollector(httpClient, server.URL, "test-key")
+	defer collector.Close()
+
+	// Create a test metric
+	metric := &ebuv1.TelemetryMetric{
+		Timestamp: timestamppb.Now(),
+		Metric: &ebuv1.TelemetryMetric_Publish{
+			Publish: &ebuv1.PublishMetric{
+				EventType:  "test.event",
+				DurationNs: 1000000,
+			},
+		},
+	}
+
+	// Call sendBatch - should log error but not panic
+	collector.sendBatch([]*ebuv1.TelemetryMetric{metric})
+
+	// If we get here without panic, error handling worked
+}
+
+// mockEventServiceWithError implements a partial EventService that returns errors
+type mockEventServiceWithError struct {
+	ebuv1connect.UnimplementedEventServiceHandler
+}
+
+func (m *mockEventServiceWithError) ReportTelemetry(
+	ctx context.Context,
+	stream *connect.ClientStream[ebuv1.TelemetryBatch],
+) (*connect.Response[ebuv1.TelemetryResponse], error) {
+	// Return an error
+	return nil, connect.NewError(connect.CodeInternal, errors.New("mock server error"))
 }
