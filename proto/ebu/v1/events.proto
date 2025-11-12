@@ -6,7 +6,7 @@ option go_package = "github.com/jilio/lookhere/gen/ebu/v1;ebuv1";
 
 import "google/protobuf/timestamp.proto";
 
-// EventService handles event streaming
+// EventService handles event streaming and telemetry
 service EventService {
   // SaveEvent saves a single event to storage
   rpc SaveEvent(SaveEventRequest) returns (SaveEventResponse);
@@ -23,8 +23,9 @@ service EventService {
   // LoadSubscriptionPosition loads a subscription's saved position
   rpc LoadSubscriptionPosition(LoadSubscriptionPositionRequest) returns (LoadSubscriptionPositionResponse);
 
-  // ReportTelemetry accepts a stream of telemetry batches from the client
-  rpc ReportTelemetry(stream TelemetryBatch) returns (TelemetryResponse);
+  // ExportTrace accepts OTLP trace data (compatible with OpenTelemetry collectors)
+  // This follows the OTLP/HTTP protocol for trace export
+  rpc ExportTrace(ExportTraceServiceRequest) returns (ExportTraceServiceResponse);
 }
 
 // StoredEvent represents an event in persistent storage
@@ -78,46 +79,85 @@ message LoadSubscriptionPositionResponse {
   int64 position = 1;
 }
 
-// Telemetry messages for observability
+// OTLP Trace Export Messages
+// Simplified OTLP protocol for EBU telemetry
 
-// TelemetryBatch contains a batch of telemetry metrics
-message TelemetryBatch {
-  repeated TelemetryMetric metrics = 1;
+message ExportTraceServiceRequest {
+  repeated ResourceSpans resource_spans = 1;
 }
 
-// TelemetryMetric represents a single observability metric from EBU
-message TelemetryMetric {
-  google.protobuf.Timestamp timestamp = 1;
-  oneof metric {
-    PublishMetric publish = 2;
-    HandlerMetric handler = 3;
-    PersistMetric persist = 4;
+message ExportTraceServiceResponse {
+  ExportTracePartialSuccess partial_success = 1;
+}
+
+message ExportTracePartialSuccess {
+  int64 rejected_spans = 1;
+  string error_message = 2;
+}
+
+message ResourceSpans {
+  Resource resource = 1;
+  repeated ScopeSpans scope_spans = 2;
+}
+
+message Resource {
+  repeated KeyValue attributes = 1;
+}
+
+message ScopeSpans {
+  InstrumentationScope scope = 1;
+  repeated Span spans = 2;
+}
+
+message InstrumentationScope {
+  string name = 1;
+  string version = 2;
+}
+
+message Span {
+  bytes trace_id = 1; // 16 bytes
+  bytes span_id = 2; // 8 bytes
+  bytes parent_span_id = 3; // 8 bytes (optional)
+
+  string name = 4;
+  SpanKind kind = 5;
+  fixed64 start_time_unix_nano = 6;
+  fixed64 end_time_unix_nano = 7;
+
+  repeated KeyValue attributes = 8;
+  Status status = 9;
+}
+
+enum SpanKind {
+  SPAN_KIND_UNSPECIFIED = 0;
+  SPAN_KIND_INTERNAL = 1;
+  SPAN_KIND_SERVER = 2;
+  SPAN_KIND_CLIENT = 3;
+  SPAN_KIND_PRODUCER = 4;
+  SPAN_KIND_CONSUMER = 5;
+}
+
+message Status {
+  StatusCode code = 1;
+  string message = 2;
+}
+
+enum StatusCode {
+  STATUS_CODE_UNSET = 0;
+  STATUS_CODE_OK = 1;
+  STATUS_CODE_ERROR = 2;
+}
+
+message KeyValue {
+  string key = 1;
+  AnyValue value = 2;
+}
+
+message AnyValue {
+  oneof value {
+    string string_value = 1;
+    bool bool_value = 2;
+    int64 int_value = 3;
+    double double_value = 4;
   }
-}
-
-// PublishMetric tracks event publishing
-message PublishMetric {
-  string event_type = 1;
-  int64 duration_ns = 2; // Duration in nanoseconds
-}
-
-// HandlerMetric tracks event handler execution
-message HandlerMetric {
-  string event_type = 1;
-  bool async = 2; // Whether handler was async
-  int64 duration_ns = 3; // Duration in nanoseconds
-  string error = 4; // Error message if handler failed (empty if success)
-}
-
-// PersistMetric tracks event persistence operations
-message PersistMetric {
-  string event_type = 1;
-  int64 position = 2; // Event position in storage
-  int64 duration_ns = 3; // Duration in nanoseconds
-  string error = 4; // Error message if persist failed (empty if success)
-}
-
-// TelemetryResponse acknowledges telemetry receipt
-message TelemetryResponse {
-  int64 received_count = 1; // Number of metrics received
 }

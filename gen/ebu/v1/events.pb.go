@@ -22,6 +22,113 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type SpanKind int32
+
+const (
+	SpanKind_SPAN_KIND_UNSPECIFIED SpanKind = 0
+	SpanKind_SPAN_KIND_INTERNAL    SpanKind = 1
+	SpanKind_SPAN_KIND_SERVER      SpanKind = 2
+	SpanKind_SPAN_KIND_CLIENT      SpanKind = 3
+	SpanKind_SPAN_KIND_PRODUCER    SpanKind = 4
+	SpanKind_SPAN_KIND_CONSUMER    SpanKind = 5
+)
+
+// Enum value maps for SpanKind.
+var (
+	SpanKind_name = map[int32]string{
+		0: "SPAN_KIND_UNSPECIFIED",
+		1: "SPAN_KIND_INTERNAL",
+		2: "SPAN_KIND_SERVER",
+		3: "SPAN_KIND_CLIENT",
+		4: "SPAN_KIND_PRODUCER",
+		5: "SPAN_KIND_CONSUMER",
+	}
+	SpanKind_value = map[string]int32{
+		"SPAN_KIND_UNSPECIFIED": 0,
+		"SPAN_KIND_INTERNAL":    1,
+		"SPAN_KIND_SERVER":      2,
+		"SPAN_KIND_CLIENT":      3,
+		"SPAN_KIND_PRODUCER":    4,
+		"SPAN_KIND_CONSUMER":    5,
+	}
+)
+
+func (x SpanKind) Enum() *SpanKind {
+	p := new(SpanKind)
+	*p = x
+	return p
+}
+
+func (x SpanKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SpanKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_ebu_v1_events_proto_enumTypes[0].Descriptor()
+}
+
+func (SpanKind) Type() protoreflect.EnumType {
+	return &file_ebu_v1_events_proto_enumTypes[0]
+}
+
+func (x SpanKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SpanKind.Descriptor instead.
+func (SpanKind) EnumDescriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{0}
+}
+
+type StatusCode int32
+
+const (
+	StatusCode_STATUS_CODE_UNSET StatusCode = 0
+	StatusCode_STATUS_CODE_OK    StatusCode = 1
+	StatusCode_STATUS_CODE_ERROR StatusCode = 2
+)
+
+// Enum value maps for StatusCode.
+var (
+	StatusCode_name = map[int32]string{
+		0: "STATUS_CODE_UNSET",
+		1: "STATUS_CODE_OK",
+		2: "STATUS_CODE_ERROR",
+	}
+	StatusCode_value = map[string]int32{
+		"STATUS_CODE_UNSET": 0,
+		"STATUS_CODE_OK":    1,
+		"STATUS_CODE_ERROR": 2,
+	}
+)
+
+func (x StatusCode) Enum() *StatusCode {
+	p := new(StatusCode)
+	*p = x
+	return p
+}
+
+func (x StatusCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (StatusCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_ebu_v1_events_proto_enumTypes[1].Descriptor()
+}
+
+func (StatusCode) Type() protoreflect.EnumType {
+	return &file_ebu_v1_events_proto_enumTypes[1]
+}
+
+func (x StatusCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use StatusCode.Descriptor instead.
+func (StatusCode) EnumDescriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{1}
+}
+
 // StoredEvent represents an event in persistent storage
 type StoredEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -536,28 +643,27 @@ func (x *LoadSubscriptionPositionResponse) GetPosition() int64 {
 	return 0
 }
 
-// TelemetryBatch contains a batch of telemetry metrics
-type TelemetryBatch struct {
+type ExportTraceServiceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Metrics       []*TelemetryMetric     `protobuf:"bytes,1,rep,name=metrics,proto3" json:"metrics,omitempty"`
+	ResourceSpans []*ResourceSpans       `protobuf:"bytes,1,rep,name=resource_spans,json=resourceSpans,proto3" json:"resource_spans,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *TelemetryBatch) Reset() {
-	*x = TelemetryBatch{}
+func (x *ExportTraceServiceRequest) Reset() {
+	*x = ExportTraceServiceRequest{}
 	mi := &file_ebu_v1_events_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *TelemetryBatch) String() string {
+func (x *ExportTraceServiceRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*TelemetryBatch) ProtoMessage() {}
+func (*ExportTraceServiceRequest) ProtoMessage() {}
 
-func (x *TelemetryBatch) ProtoReflect() protoreflect.Message {
+func (x *ExportTraceServiceRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ebu_v1_events_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -569,46 +675,39 @@ func (x *TelemetryBatch) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TelemetryBatch.ProtoReflect.Descriptor instead.
-func (*TelemetryBatch) Descriptor() ([]byte, []int) {
+// Deprecated: Use ExportTraceServiceRequest.ProtoReflect.Descriptor instead.
+func (*ExportTraceServiceRequest) Descriptor() ([]byte, []int) {
 	return file_ebu_v1_events_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *TelemetryBatch) GetMetrics() []*TelemetryMetric {
+func (x *ExportTraceServiceRequest) GetResourceSpans() []*ResourceSpans {
 	if x != nil {
-		return x.Metrics
+		return x.ResourceSpans
 	}
 	return nil
 }
 
-// TelemetryMetric represents a single observability metric from EBU
-type TelemetryMetric struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Timestamp *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	// Types that are valid to be assigned to Metric:
-	//
-	//	*TelemetryMetric_Publish
-	//	*TelemetryMetric_Handler
-	//	*TelemetryMetric_Persist
-	Metric        isTelemetryMetric_Metric `protobuf_oneof:"metric"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+type ExportTraceServiceResponse struct {
+	state          protoimpl.MessageState     `protogen:"open.v1"`
+	PartialSuccess *ExportTracePartialSuccess `protobuf:"bytes,1,opt,name=partial_success,json=partialSuccess,proto3" json:"partial_success,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
-func (x *TelemetryMetric) Reset() {
-	*x = TelemetryMetric{}
+func (x *ExportTraceServiceResponse) Reset() {
+	*x = ExportTraceServiceResponse{}
 	mi := &file_ebu_v1_events_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *TelemetryMetric) String() string {
+func (x *ExportTraceServiceResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*TelemetryMetric) ProtoMessage() {}
+func (*ExportTraceServiceResponse) ProtoMessage() {}
 
-func (x *TelemetryMetric) ProtoReflect() protoreflect.Message {
+func (x *ExportTraceServiceResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_ebu_v1_events_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -620,97 +719,40 @@ func (x *TelemetryMetric) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TelemetryMetric.ProtoReflect.Descriptor instead.
-func (*TelemetryMetric) Descriptor() ([]byte, []int) {
+// Deprecated: Use ExportTraceServiceResponse.ProtoReflect.Descriptor instead.
+func (*ExportTraceServiceResponse) Descriptor() ([]byte, []int) {
 	return file_ebu_v1_events_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *TelemetryMetric) GetTimestamp() *timestamppb.Timestamp {
+func (x *ExportTraceServiceResponse) GetPartialSuccess() *ExportTracePartialSuccess {
 	if x != nil {
-		return x.Timestamp
+		return x.PartialSuccess
 	}
 	return nil
 }
 
-func (x *TelemetryMetric) GetMetric() isTelemetryMetric_Metric {
-	if x != nil {
-		return x.Metric
-	}
-	return nil
-}
-
-func (x *TelemetryMetric) GetPublish() *PublishMetric {
-	if x != nil {
-		if x, ok := x.Metric.(*TelemetryMetric_Publish); ok {
-			return x.Publish
-		}
-	}
-	return nil
-}
-
-func (x *TelemetryMetric) GetHandler() *HandlerMetric {
-	if x != nil {
-		if x, ok := x.Metric.(*TelemetryMetric_Handler); ok {
-			return x.Handler
-		}
-	}
-	return nil
-}
-
-func (x *TelemetryMetric) GetPersist() *PersistMetric {
-	if x != nil {
-		if x, ok := x.Metric.(*TelemetryMetric_Persist); ok {
-			return x.Persist
-		}
-	}
-	return nil
-}
-
-type isTelemetryMetric_Metric interface {
-	isTelemetryMetric_Metric()
-}
-
-type TelemetryMetric_Publish struct {
-	Publish *PublishMetric `protobuf:"bytes,2,opt,name=publish,proto3,oneof"`
-}
-
-type TelemetryMetric_Handler struct {
-	Handler *HandlerMetric `protobuf:"bytes,3,opt,name=handler,proto3,oneof"`
-}
-
-type TelemetryMetric_Persist struct {
-	Persist *PersistMetric `protobuf:"bytes,4,opt,name=persist,proto3,oneof"`
-}
-
-func (*TelemetryMetric_Publish) isTelemetryMetric_Metric() {}
-
-func (*TelemetryMetric_Handler) isTelemetryMetric_Metric() {}
-
-func (*TelemetryMetric_Persist) isTelemetryMetric_Metric() {}
-
-// PublishMetric tracks event publishing
-type PublishMetric struct {
+type ExportTracePartialSuccess struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	EventType     string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	DurationNs    int64                  `protobuf:"varint,2,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"` // Duration in nanoseconds
+	RejectedSpans int64                  `protobuf:"varint,1,opt,name=rejected_spans,json=rejectedSpans,proto3" json:"rejected_spans,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,2,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PublishMetric) Reset() {
-	*x = PublishMetric{}
+func (x *ExportTracePartialSuccess) Reset() {
+	*x = ExportTracePartialSuccess{}
 	mi := &file_ebu_v1_events_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PublishMetric) String() string {
+func (x *ExportTracePartialSuccess) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PublishMetric) ProtoMessage() {}
+func (*ExportTracePartialSuccess) ProtoMessage() {}
 
-func (x *PublishMetric) ProtoReflect() protoreflect.Message {
+func (x *ExportTracePartialSuccess) ProtoReflect() protoreflect.Message {
 	mi := &file_ebu_v1_events_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -722,50 +764,47 @@ func (x *PublishMetric) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PublishMetric.ProtoReflect.Descriptor instead.
-func (*PublishMetric) Descriptor() ([]byte, []int) {
+// Deprecated: Use ExportTracePartialSuccess.ProtoReflect.Descriptor instead.
+func (*ExportTracePartialSuccess) Descriptor() ([]byte, []int) {
 	return file_ebu_v1_events_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *PublishMetric) GetEventType() string {
+func (x *ExportTracePartialSuccess) GetRejectedSpans() int64 {
 	if x != nil {
-		return x.EventType
-	}
-	return ""
-}
-
-func (x *PublishMetric) GetDurationNs() int64 {
-	if x != nil {
-		return x.DurationNs
+		return x.RejectedSpans
 	}
 	return 0
 }
 
-// HandlerMetric tracks event handler execution
-type HandlerMetric struct {
+func (x *ExportTracePartialSuccess) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+type ResourceSpans struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	EventType     string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	Async         bool                   `protobuf:"varint,2,opt,name=async,proto3" json:"async,omitempty"`                             // Whether handler was async
-	DurationNs    int64                  `protobuf:"varint,3,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"` // Duration in nanoseconds
-	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`                              // Error message if handler failed (empty if success)
+	Resource      *Resource              `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	ScopeSpans    []*ScopeSpans          `protobuf:"bytes,2,rep,name=scope_spans,json=scopeSpans,proto3" json:"scope_spans,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *HandlerMetric) Reset() {
-	*x = HandlerMetric{}
+func (x *ResourceSpans) Reset() {
+	*x = ResourceSpans{}
 	mi := &file_ebu_v1_events_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *HandlerMetric) String() string {
+func (x *ResourceSpans) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*HandlerMetric) ProtoMessage() {}
+func (*ResourceSpans) ProtoMessage() {}
 
-func (x *HandlerMetric) ProtoReflect() protoreflect.Message {
+func (x *ResourceSpans) ProtoReflect() protoreflect.Message {
 	mi := &file_ebu_v1_events_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -777,152 +816,498 @@ func (x *HandlerMetric) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use HandlerMetric.ProtoReflect.Descriptor instead.
-func (*HandlerMetric) Descriptor() ([]byte, []int) {
+// Deprecated: Use ResourceSpans.ProtoReflect.Descriptor instead.
+func (*ResourceSpans) Descriptor() ([]byte, []int) {
 	return file_ebu_v1_events_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *HandlerMetric) GetEventType() string {
+func (x *ResourceSpans) GetResource() *Resource {
 	if x != nil {
-		return x.EventType
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *ResourceSpans) GetScopeSpans() []*ScopeSpans {
+	if x != nil {
+		return x.ScopeSpans
+	}
+	return nil
+}
+
+type Resource struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Attributes    []*KeyValue            `protobuf:"bytes,1,rep,name=attributes,proto3" json:"attributes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Resource) Reset() {
+	*x = Resource{}
+	mi := &file_ebu_v1_events_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Resource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Resource) ProtoMessage() {}
+
+func (x *Resource) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Resource.ProtoReflect.Descriptor instead.
+func (*Resource) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *Resource) GetAttributes() []*KeyValue {
+	if x != nil {
+		return x.Attributes
+	}
+	return nil
+}
+
+type ScopeSpans struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Scope         *InstrumentationScope  `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	Spans         []*Span                `protobuf:"bytes,2,rep,name=spans,proto3" json:"spans,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScopeSpans) Reset() {
+	*x = ScopeSpans{}
+	mi := &file_ebu_v1_events_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScopeSpans) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScopeSpans) ProtoMessage() {}
+
+func (x *ScopeSpans) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScopeSpans.ProtoReflect.Descriptor instead.
+func (*ScopeSpans) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ScopeSpans) GetScope() *InstrumentationScope {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+func (x *ScopeSpans) GetSpans() []*Span {
+	if x != nil {
+		return x.Spans
+	}
+	return nil
+}
+
+type InstrumentationScope struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstrumentationScope) Reset() {
+	*x = InstrumentationScope{}
+	mi := &file_ebu_v1_events_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstrumentationScope) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstrumentationScope) ProtoMessage() {}
+
+func (x *InstrumentationScope) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstrumentationScope.ProtoReflect.Descriptor instead.
+func (*InstrumentationScope) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *InstrumentationScope) GetName() string {
+	if x != nil {
+		return x.Name
 	}
 	return ""
 }
 
-func (x *HandlerMetric) GetAsync() bool {
+func (x *InstrumentationScope) GetVersion() string {
 	if x != nil {
-		return x.Async
+		return x.Version
+	}
+	return ""
+}
+
+type Span struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	TraceId           []byte                 `protobuf:"bytes,1,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`                  // 16 bytes
+	SpanId            []byte                 `protobuf:"bytes,2,opt,name=span_id,json=spanId,proto3" json:"span_id,omitempty"`                     // 8 bytes
+	ParentSpanId      []byte                 `protobuf:"bytes,3,opt,name=parent_span_id,json=parentSpanId,proto3" json:"parent_span_id,omitempty"` // 8 bytes (optional)
+	Name              string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	Kind              SpanKind               `protobuf:"varint,5,opt,name=kind,proto3,enum=ebu.v1.SpanKind" json:"kind,omitempty"`
+	StartTimeUnixNano uint64                 `protobuf:"fixed64,6,opt,name=start_time_unix_nano,json=startTimeUnixNano,proto3" json:"start_time_unix_nano,omitempty"`
+	EndTimeUnixNano   uint64                 `protobuf:"fixed64,7,opt,name=end_time_unix_nano,json=endTimeUnixNano,proto3" json:"end_time_unix_nano,omitempty"`
+	Attributes        []*KeyValue            `protobuf:"bytes,8,rep,name=attributes,proto3" json:"attributes,omitempty"`
+	Status            *Status                `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *Span) Reset() {
+	*x = Span{}
+	mi := &file_ebu_v1_events_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Span) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Span) ProtoMessage() {}
+
+func (x *Span) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Span.ProtoReflect.Descriptor instead.
+func (*Span) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *Span) GetTraceId() []byte {
+	if x != nil {
+		return x.TraceId
+	}
+	return nil
+}
+
+func (x *Span) GetSpanId() []byte {
+	if x != nil {
+		return x.SpanId
+	}
+	return nil
+}
+
+func (x *Span) GetParentSpanId() []byte {
+	if x != nil {
+		return x.ParentSpanId
+	}
+	return nil
+}
+
+func (x *Span) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Span) GetKind() SpanKind {
+	if x != nil {
+		return x.Kind
+	}
+	return SpanKind_SPAN_KIND_UNSPECIFIED
+}
+
+func (x *Span) GetStartTimeUnixNano() uint64 {
+	if x != nil {
+		return x.StartTimeUnixNano
+	}
+	return 0
+}
+
+func (x *Span) GetEndTimeUnixNano() uint64 {
+	if x != nil {
+		return x.EndTimeUnixNano
+	}
+	return 0
+}
+
+func (x *Span) GetAttributes() []*KeyValue {
+	if x != nil {
+		return x.Attributes
+	}
+	return nil
+}
+
+func (x *Span) GetStatus() *Status {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+type Status struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          StatusCode             `protobuf:"varint,1,opt,name=code,proto3,enum=ebu.v1.StatusCode" json:"code,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Status) Reset() {
+	*x = Status{}
+	mi := &file_ebu_v1_events_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Status) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Status) ProtoMessage() {}
+
+func (x *Status) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Status.ProtoReflect.Descriptor instead.
+func (*Status) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *Status) GetCode() StatusCode {
+	if x != nil {
+		return x.Code
+	}
+	return StatusCode_STATUS_CODE_UNSET
+}
+
+func (x *Status) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type KeyValue struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         *AnyValue              `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeyValue) Reset() {
+	*x = KeyValue{}
+	mi := &file_ebu_v1_events_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeyValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeyValue) ProtoMessage() {}
+
+func (x *KeyValue) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeyValue.ProtoReflect.Descriptor instead.
+func (*KeyValue) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *KeyValue) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *KeyValue) GetValue() *AnyValue {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+type AnyValue struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Value:
+	//
+	//	*AnyValue_StringValue
+	//	*AnyValue_BoolValue
+	//	*AnyValue_IntValue
+	//	*AnyValue_DoubleValue
+	Value         isAnyValue_Value `protobuf_oneof:"value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AnyValue) Reset() {
+	*x = AnyValue{}
+	mi := &file_ebu_v1_events_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AnyValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AnyValue) ProtoMessage() {}
+
+func (x *AnyValue) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AnyValue.ProtoReflect.Descriptor instead.
+func (*AnyValue) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *AnyValue) GetValue() isAnyValue_Value {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+func (x *AnyValue) GetStringValue() string {
+	if x != nil {
+		if x, ok := x.Value.(*AnyValue_StringValue); ok {
+			return x.StringValue
+		}
+	}
+	return ""
+}
+
+func (x *AnyValue) GetBoolValue() bool {
+	if x != nil {
+		if x, ok := x.Value.(*AnyValue_BoolValue); ok {
+			return x.BoolValue
+		}
 	}
 	return false
 }
 
-func (x *HandlerMetric) GetDurationNs() int64 {
+func (x *AnyValue) GetIntValue() int64 {
 	if x != nil {
-		return x.DurationNs
-	}
-	return 0
-}
-
-func (x *HandlerMetric) GetError() string {
-	if x != nil {
-		return x.Error
-	}
-	return ""
-}
-
-// PersistMetric tracks event persistence operations
-type PersistMetric struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	EventType     string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	Position      int64                  `protobuf:"varint,2,opt,name=position,proto3" json:"position,omitempty"`                       // Event position in storage
-	DurationNs    int64                  `protobuf:"varint,3,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"` // Duration in nanoseconds
-	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`                              // Error message if persist failed (empty if success)
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PersistMetric) Reset() {
-	*x = PersistMetric{}
-	mi := &file_ebu_v1_events_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PersistMetric) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PersistMetric) ProtoMessage() {}
-
-func (x *PersistMetric) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
+		if x, ok := x.Value.(*AnyValue_IntValue); ok {
+			return x.IntValue
 		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PersistMetric.ProtoReflect.Descriptor instead.
-func (*PersistMetric) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *PersistMetric) GetEventType() string {
-	if x != nil {
-		return x.EventType
-	}
-	return ""
-}
-
-func (x *PersistMetric) GetPosition() int64 {
-	if x != nil {
-		return x.Position
 	}
 	return 0
 }
 
-func (x *PersistMetric) GetDurationNs() int64 {
+func (x *AnyValue) GetDoubleValue() float64 {
 	if x != nil {
-		return x.DurationNs
-	}
-	return 0
-}
-
-func (x *PersistMetric) GetError() string {
-	if x != nil {
-		return x.Error
-	}
-	return ""
-}
-
-// TelemetryResponse acknowledges telemetry receipt
-type TelemetryResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ReceivedCount int64                  `protobuf:"varint,1,opt,name=received_count,json=receivedCount,proto3" json:"received_count,omitempty"` // Number of metrics received
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *TelemetryResponse) Reset() {
-	*x = TelemetryResponse{}
-	mi := &file_ebu_v1_events_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TelemetryResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TelemetryResponse) ProtoMessage() {}
-
-func (x *TelemetryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
+		if x, ok := x.Value.(*AnyValue_DoubleValue); ok {
+			return x.DoubleValue
 		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TelemetryResponse.ProtoReflect.Descriptor instead.
-func (*TelemetryResponse) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *TelemetryResponse) GetReceivedCount() int64 {
-	if x != nil {
-		return x.ReceivedCount
 	}
 	return 0
 }
+
+type isAnyValue_Value interface {
+	isAnyValue_Value()
+}
+
+type AnyValue_StringValue struct {
+	StringValue string `protobuf:"bytes,1,opt,name=string_value,json=stringValue,proto3,oneof"`
+}
+
+type AnyValue_BoolValue struct {
+	BoolValue bool `protobuf:"varint,2,opt,name=bool_value,json=boolValue,proto3,oneof"`
+}
+
+type AnyValue_IntValue struct {
+	IntValue int64 `protobuf:"varint,3,opt,name=int_value,json=intValue,proto3,oneof"`
+}
+
+type AnyValue_DoubleValue struct {
+	DoubleValue float64 `protobuf:"fixed64,4,opt,name=double_value,json=doubleValue,proto3,oneof"`
+}
+
+func (*AnyValue_StringValue) isAnyValue_Value() {}
+
+func (*AnyValue_BoolValue) isAnyValue_Value() {}
+
+func (*AnyValue_IntValue) isAnyValue_Value() {}
+
+func (*AnyValue_DoubleValue) isAnyValue_Value() {}
 
 var File_ebu_v1_events_proto protoreflect.FileDescriptor
 
@@ -953,44 +1338,74 @@ const file_ebu_v1_events_proto_rawDesc = "" +
 	"\x1fLoadSubscriptionPositionRequest\x12'\n" +
 	"\x0fsubscription_id\x18\x01 \x01(\tR\x0esubscriptionId\">\n" +
 	" LoadSubscriptionPositionResponse\x12\x1a\n" +
-	"\bposition\x18\x01 \x01(\x03R\bposition\"C\n" +
-	"\x0eTelemetryBatch\x121\n" +
-	"\ametrics\x18\x01 \x03(\v2\x17.ebu.v1.TelemetryMetricR\ametrics\"\xee\x01\n" +
-	"\x0fTelemetryMetric\x128\n" +
-	"\ttimestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x121\n" +
-	"\apublish\x18\x02 \x01(\v2\x15.ebu.v1.PublishMetricH\x00R\apublish\x121\n" +
-	"\ahandler\x18\x03 \x01(\v2\x15.ebu.v1.HandlerMetricH\x00R\ahandler\x121\n" +
-	"\apersist\x18\x04 \x01(\v2\x15.ebu.v1.PersistMetricH\x00R\apersistB\b\n" +
-	"\x06metric\"O\n" +
-	"\rPublishMetric\x12\x1d\n" +
+	"\bposition\x18\x01 \x01(\x03R\bposition\"Y\n" +
+	"\x19ExportTraceServiceRequest\x12<\n" +
+	"\x0eresource_spans\x18\x01 \x03(\v2\x15.ebu.v1.ResourceSpansR\rresourceSpans\"h\n" +
+	"\x1aExportTraceServiceResponse\x12J\n" +
+	"\x0fpartial_success\x18\x01 \x01(\v2!.ebu.v1.ExportTracePartialSuccessR\x0epartialSuccess\"g\n" +
+	"\x19ExportTracePartialSuccess\x12%\n" +
+	"\x0erejected_spans\x18\x01 \x01(\x03R\rrejectedSpans\x12#\n" +
+	"\rerror_message\x18\x02 \x01(\tR\ferrorMessage\"r\n" +
+	"\rResourceSpans\x12,\n" +
+	"\bresource\x18\x01 \x01(\v2\x10.ebu.v1.ResourceR\bresource\x123\n" +
+	"\vscope_spans\x18\x02 \x03(\v2\x12.ebu.v1.ScopeSpansR\n" +
+	"scopeSpans\"<\n" +
+	"\bResource\x120\n" +
 	"\n" +
-	"event_type\x18\x01 \x01(\tR\teventType\x12\x1f\n" +
-	"\vduration_ns\x18\x02 \x01(\x03R\n" +
-	"durationNs\"{\n" +
-	"\rHandlerMetric\x12\x1d\n" +
+	"attributes\x18\x01 \x03(\v2\x10.ebu.v1.KeyValueR\n" +
+	"attributes\"d\n" +
 	"\n" +
-	"event_type\x18\x01 \x01(\tR\teventType\x12\x14\n" +
-	"\x05async\x18\x02 \x01(\bR\x05async\x12\x1f\n" +
-	"\vduration_ns\x18\x03 \x01(\x03R\n" +
-	"durationNs\x12\x14\n" +
-	"\x05error\x18\x04 \x01(\tR\x05error\"\x81\x01\n" +
-	"\rPersistMetric\x12\x1d\n" +
+	"ScopeSpans\x122\n" +
+	"\x05scope\x18\x01 \x01(\v2\x1c.ebu.v1.InstrumentationScopeR\x05scope\x12\"\n" +
+	"\x05spans\x18\x02 \x03(\v2\f.ebu.v1.SpanR\x05spans\"D\n" +
+	"\x14InstrumentationScope\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\"\xd2\x02\n" +
+	"\x04Span\x12\x19\n" +
+	"\btrace_id\x18\x01 \x01(\fR\atraceId\x12\x17\n" +
+	"\aspan_id\x18\x02 \x01(\fR\x06spanId\x12$\n" +
+	"\x0eparent_span_id\x18\x03 \x01(\fR\fparentSpanId\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12$\n" +
+	"\x04kind\x18\x05 \x01(\x0e2\x10.ebu.v1.SpanKindR\x04kind\x12/\n" +
+	"\x14start_time_unix_nano\x18\x06 \x01(\x06R\x11startTimeUnixNano\x12+\n" +
+	"\x12end_time_unix_nano\x18\a \x01(\x06R\x0fendTimeUnixNano\x120\n" +
 	"\n" +
-	"event_type\x18\x01 \x01(\tR\teventType\x12\x1a\n" +
-	"\bposition\x18\x02 \x01(\x03R\bposition\x12\x1f\n" +
-	"\vduration_ns\x18\x03 \x01(\x03R\n" +
-	"durationNs\x12\x14\n" +
-	"\x05error\x18\x04 \x01(\tR\x05error\":\n" +
-	"\x11TelemetryResponse\x12%\n" +
-	"\x0ereceived_count\x18\x01 \x01(\x03R\rreceivedCount2\x83\x04\n" +
+	"attributes\x18\b \x03(\v2\x10.ebu.v1.KeyValueR\n" +
+	"attributes\x12&\n" +
+	"\x06status\x18\t \x01(\v2\x0e.ebu.v1.StatusR\x06status\"J\n" +
+	"\x06Status\x12&\n" +
+	"\x04code\x18\x01 \x01(\x0e2\x12.ebu.v1.StatusCodeR\x04code\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"D\n" +
+	"\bKeyValue\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12&\n" +
+	"\x05value\x18\x02 \x01(\v2\x10.ebu.v1.AnyValueR\x05value\"\x9d\x01\n" +
+	"\bAnyValue\x12#\n" +
+	"\fstring_value\x18\x01 \x01(\tH\x00R\vstringValue\x12\x1f\n" +
+	"\n" +
+	"bool_value\x18\x02 \x01(\bH\x00R\tboolValue\x12\x1d\n" +
+	"\tint_value\x18\x03 \x01(\x03H\x00R\bintValue\x12#\n" +
+	"\fdouble_value\x18\x04 \x01(\x01H\x00R\vdoubleValueB\a\n" +
+	"\x05value*\x99\x01\n" +
+	"\bSpanKind\x12\x19\n" +
+	"\x15SPAN_KIND_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12SPAN_KIND_INTERNAL\x10\x01\x12\x14\n" +
+	"\x10SPAN_KIND_SERVER\x10\x02\x12\x14\n" +
+	"\x10SPAN_KIND_CLIENT\x10\x03\x12\x16\n" +
+	"\x12SPAN_KIND_PRODUCER\x10\x04\x12\x16\n" +
+	"\x12SPAN_KIND_CONSUMER\x10\x05*N\n" +
+	"\n" +
+	"StatusCode\x12\x15\n" +
+	"\x11STATUS_CODE_UNSET\x10\x00\x12\x12\n" +
+	"\x0eSTATUS_CODE_OK\x10\x01\x12\x15\n" +
+	"\x11STATUS_CODE_ERROR\x10\x022\x91\x04\n" +
 	"\fEventService\x12@\n" +
 	"\tSaveEvent\x12\x18.ebu.v1.SaveEventRequest\x1a\x19.ebu.v1.SaveEventResponse\x12C\n" +
 	"\n" +
 	"LoadEvents\x12\x19.ebu.v1.LoadEventsRequest\x1a\x1a.ebu.v1.LoadEventsResponse\x12F\n" +
 	"\vGetPosition\x12\x1a.ebu.v1.GetPositionRequest\x1a\x1b.ebu.v1.GetPositionResponse\x12m\n" +
 	"\x18SaveSubscriptionPosition\x12'.ebu.v1.SaveSubscriptionPositionRequest\x1a(.ebu.v1.SaveSubscriptionPositionResponse\x12m\n" +
-	"\x18LoadSubscriptionPosition\x12'.ebu.v1.LoadSubscriptionPositionRequest\x1a(.ebu.v1.LoadSubscriptionPositionResponse\x12F\n" +
-	"\x0fReportTelemetry\x12\x16.ebu.v1.TelemetryBatch\x1a\x19.ebu.v1.TelemetryResponse(\x01B,Z*github.com/jilio/lookhere/gen/ebu/v1;ebuv1b\x06proto3"
+	"\x18LoadSubscriptionPosition\x12'.ebu.v1.LoadSubscriptionPositionRequest\x1a(.ebu.v1.LoadSubscriptionPositionResponse\x12T\n" +
+	"\vExportTrace\x12!.ebu.v1.ExportTraceServiceRequest\x1a\".ebu.v1.ExportTraceServiceResponseB,Z*github.com/jilio/lookhere/gen/ebu/v1;ebuv1b\x06proto3"
 
 var (
 	file_ebu_v1_events_proto_rawDescOnce sync.Once
@@ -1004,53 +1419,68 @@ func file_ebu_v1_events_proto_rawDescGZIP() []byte {
 	return file_ebu_v1_events_proto_rawDescData
 }
 
-var file_ebu_v1_events_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_ebu_v1_events_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ebu_v1_events_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_ebu_v1_events_proto_goTypes = []any{
-	(*StoredEvent)(nil),                      // 0: ebu.v1.StoredEvent
-	(*SaveEventRequest)(nil),                 // 1: ebu.v1.SaveEventRequest
-	(*SaveEventResponse)(nil),                // 2: ebu.v1.SaveEventResponse
-	(*LoadEventsRequest)(nil),                // 3: ebu.v1.LoadEventsRequest
-	(*LoadEventsResponse)(nil),               // 4: ebu.v1.LoadEventsResponse
-	(*GetPositionRequest)(nil),               // 5: ebu.v1.GetPositionRequest
-	(*GetPositionResponse)(nil),              // 6: ebu.v1.GetPositionResponse
-	(*SaveSubscriptionPositionRequest)(nil),  // 7: ebu.v1.SaveSubscriptionPositionRequest
-	(*SaveSubscriptionPositionResponse)(nil), // 8: ebu.v1.SaveSubscriptionPositionResponse
-	(*LoadSubscriptionPositionRequest)(nil),  // 9: ebu.v1.LoadSubscriptionPositionRequest
-	(*LoadSubscriptionPositionResponse)(nil), // 10: ebu.v1.LoadSubscriptionPositionResponse
-	(*TelemetryBatch)(nil),                   // 11: ebu.v1.TelemetryBatch
-	(*TelemetryMetric)(nil),                  // 12: ebu.v1.TelemetryMetric
-	(*PublishMetric)(nil),                    // 13: ebu.v1.PublishMetric
-	(*HandlerMetric)(nil),                    // 14: ebu.v1.HandlerMetric
-	(*PersistMetric)(nil),                    // 15: ebu.v1.PersistMetric
-	(*TelemetryResponse)(nil),                // 16: ebu.v1.TelemetryResponse
-	(*timestamppb.Timestamp)(nil),            // 17: google.protobuf.Timestamp
+	(SpanKind)(0),                            // 0: ebu.v1.SpanKind
+	(StatusCode)(0),                          // 1: ebu.v1.StatusCode
+	(*StoredEvent)(nil),                      // 2: ebu.v1.StoredEvent
+	(*SaveEventRequest)(nil),                 // 3: ebu.v1.SaveEventRequest
+	(*SaveEventResponse)(nil),                // 4: ebu.v1.SaveEventResponse
+	(*LoadEventsRequest)(nil),                // 5: ebu.v1.LoadEventsRequest
+	(*LoadEventsResponse)(nil),               // 6: ebu.v1.LoadEventsResponse
+	(*GetPositionRequest)(nil),               // 7: ebu.v1.GetPositionRequest
+	(*GetPositionResponse)(nil),              // 8: ebu.v1.GetPositionResponse
+	(*SaveSubscriptionPositionRequest)(nil),  // 9: ebu.v1.SaveSubscriptionPositionRequest
+	(*SaveSubscriptionPositionResponse)(nil), // 10: ebu.v1.SaveSubscriptionPositionResponse
+	(*LoadSubscriptionPositionRequest)(nil),  // 11: ebu.v1.LoadSubscriptionPositionRequest
+	(*LoadSubscriptionPositionResponse)(nil), // 12: ebu.v1.LoadSubscriptionPositionResponse
+	(*ExportTraceServiceRequest)(nil),        // 13: ebu.v1.ExportTraceServiceRequest
+	(*ExportTraceServiceResponse)(nil),       // 14: ebu.v1.ExportTraceServiceResponse
+	(*ExportTracePartialSuccess)(nil),        // 15: ebu.v1.ExportTracePartialSuccess
+	(*ResourceSpans)(nil),                    // 16: ebu.v1.ResourceSpans
+	(*Resource)(nil),                         // 17: ebu.v1.Resource
+	(*ScopeSpans)(nil),                       // 18: ebu.v1.ScopeSpans
+	(*InstrumentationScope)(nil),             // 19: ebu.v1.InstrumentationScope
+	(*Span)(nil),                             // 20: ebu.v1.Span
+	(*Status)(nil),                           // 21: ebu.v1.Status
+	(*KeyValue)(nil),                         // 22: ebu.v1.KeyValue
+	(*AnyValue)(nil),                         // 23: ebu.v1.AnyValue
+	(*timestamppb.Timestamp)(nil),            // 24: google.protobuf.Timestamp
 }
 var file_ebu_v1_events_proto_depIdxs = []int32{
-	17, // 0: ebu.v1.StoredEvent.timestamp:type_name -> google.protobuf.Timestamp
-	0,  // 1: ebu.v1.SaveEventRequest.event:type_name -> ebu.v1.StoredEvent
-	0,  // 2: ebu.v1.LoadEventsResponse.events:type_name -> ebu.v1.StoredEvent
-	12, // 3: ebu.v1.TelemetryBatch.metrics:type_name -> ebu.v1.TelemetryMetric
-	17, // 4: ebu.v1.TelemetryMetric.timestamp:type_name -> google.protobuf.Timestamp
-	13, // 5: ebu.v1.TelemetryMetric.publish:type_name -> ebu.v1.PublishMetric
-	14, // 6: ebu.v1.TelemetryMetric.handler:type_name -> ebu.v1.HandlerMetric
-	15, // 7: ebu.v1.TelemetryMetric.persist:type_name -> ebu.v1.PersistMetric
-	1,  // 8: ebu.v1.EventService.SaveEvent:input_type -> ebu.v1.SaveEventRequest
-	3,  // 9: ebu.v1.EventService.LoadEvents:input_type -> ebu.v1.LoadEventsRequest
-	5,  // 10: ebu.v1.EventService.GetPosition:input_type -> ebu.v1.GetPositionRequest
-	7,  // 11: ebu.v1.EventService.SaveSubscriptionPosition:input_type -> ebu.v1.SaveSubscriptionPositionRequest
-	9,  // 12: ebu.v1.EventService.LoadSubscriptionPosition:input_type -> ebu.v1.LoadSubscriptionPositionRequest
-	11, // 13: ebu.v1.EventService.ReportTelemetry:input_type -> ebu.v1.TelemetryBatch
-	2,  // 14: ebu.v1.EventService.SaveEvent:output_type -> ebu.v1.SaveEventResponse
-	4,  // 15: ebu.v1.EventService.LoadEvents:output_type -> ebu.v1.LoadEventsResponse
-	6,  // 16: ebu.v1.EventService.GetPosition:output_type -> ebu.v1.GetPositionResponse
-	8,  // 17: ebu.v1.EventService.SaveSubscriptionPosition:output_type -> ebu.v1.SaveSubscriptionPositionResponse
-	10, // 18: ebu.v1.EventService.LoadSubscriptionPosition:output_type -> ebu.v1.LoadSubscriptionPositionResponse
-	16, // 19: ebu.v1.EventService.ReportTelemetry:output_type -> ebu.v1.TelemetryResponse
-	14, // [14:20] is the sub-list for method output_type
-	8,  // [8:14] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	24, // 0: ebu.v1.StoredEvent.timestamp:type_name -> google.protobuf.Timestamp
+	2,  // 1: ebu.v1.SaveEventRequest.event:type_name -> ebu.v1.StoredEvent
+	2,  // 2: ebu.v1.LoadEventsResponse.events:type_name -> ebu.v1.StoredEvent
+	16, // 3: ebu.v1.ExportTraceServiceRequest.resource_spans:type_name -> ebu.v1.ResourceSpans
+	15, // 4: ebu.v1.ExportTraceServiceResponse.partial_success:type_name -> ebu.v1.ExportTracePartialSuccess
+	17, // 5: ebu.v1.ResourceSpans.resource:type_name -> ebu.v1.Resource
+	18, // 6: ebu.v1.ResourceSpans.scope_spans:type_name -> ebu.v1.ScopeSpans
+	22, // 7: ebu.v1.Resource.attributes:type_name -> ebu.v1.KeyValue
+	19, // 8: ebu.v1.ScopeSpans.scope:type_name -> ebu.v1.InstrumentationScope
+	20, // 9: ebu.v1.ScopeSpans.spans:type_name -> ebu.v1.Span
+	0,  // 10: ebu.v1.Span.kind:type_name -> ebu.v1.SpanKind
+	22, // 11: ebu.v1.Span.attributes:type_name -> ebu.v1.KeyValue
+	21, // 12: ebu.v1.Span.status:type_name -> ebu.v1.Status
+	1,  // 13: ebu.v1.Status.code:type_name -> ebu.v1.StatusCode
+	23, // 14: ebu.v1.KeyValue.value:type_name -> ebu.v1.AnyValue
+	3,  // 15: ebu.v1.EventService.SaveEvent:input_type -> ebu.v1.SaveEventRequest
+	5,  // 16: ebu.v1.EventService.LoadEvents:input_type -> ebu.v1.LoadEventsRequest
+	7,  // 17: ebu.v1.EventService.GetPosition:input_type -> ebu.v1.GetPositionRequest
+	9,  // 18: ebu.v1.EventService.SaveSubscriptionPosition:input_type -> ebu.v1.SaveSubscriptionPositionRequest
+	11, // 19: ebu.v1.EventService.LoadSubscriptionPosition:input_type -> ebu.v1.LoadSubscriptionPositionRequest
+	13, // 20: ebu.v1.EventService.ExportTrace:input_type -> ebu.v1.ExportTraceServiceRequest
+	4,  // 21: ebu.v1.EventService.SaveEvent:output_type -> ebu.v1.SaveEventResponse
+	6,  // 22: ebu.v1.EventService.LoadEvents:output_type -> ebu.v1.LoadEventsResponse
+	8,  // 23: ebu.v1.EventService.GetPosition:output_type -> ebu.v1.GetPositionResponse
+	10, // 24: ebu.v1.EventService.SaveSubscriptionPosition:output_type -> ebu.v1.SaveSubscriptionPositionResponse
+	12, // 25: ebu.v1.EventService.LoadSubscriptionPosition:output_type -> ebu.v1.LoadSubscriptionPositionResponse
+	14, // 26: ebu.v1.EventService.ExportTrace:output_type -> ebu.v1.ExportTraceServiceResponse
+	21, // [21:27] is the sub-list for method output_type
+	15, // [15:21] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_ebu_v1_events_proto_init() }
@@ -1058,23 +1488,25 @@ func file_ebu_v1_events_proto_init() {
 	if File_ebu_v1_events_proto != nil {
 		return
 	}
-	file_ebu_v1_events_proto_msgTypes[12].OneofWrappers = []any{
-		(*TelemetryMetric_Publish)(nil),
-		(*TelemetryMetric_Handler)(nil),
-		(*TelemetryMetric_Persist)(nil),
+	file_ebu_v1_events_proto_msgTypes[21].OneofWrappers = []any{
+		(*AnyValue_StringValue)(nil),
+		(*AnyValue_BoolValue)(nil),
+		(*AnyValue_IntValue)(nil),
+		(*AnyValue_DoubleValue)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ebu_v1_events_proto_rawDesc), len(file_ebu_v1_events_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   17,
+			NumEnums:      2,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_ebu_v1_events_proto_goTypes,
 		DependencyIndexes: file_ebu_v1_events_proto_depIdxs,
+		EnumInfos:         file_ebu_v1_events_proto_enumTypes,
 		MessageInfos:      file_ebu_v1_events_proto_msgTypes,
 	}.Build()
 	File_ebu_v1_events_proto = out.File

@@ -46,9 +46,9 @@ const (
 	// EventServiceLoadSubscriptionPositionProcedure is the fully-qualified name of the EventService's
 	// LoadSubscriptionPosition RPC.
 	EventServiceLoadSubscriptionPositionProcedure = "/ebu.v1.EventService/LoadSubscriptionPosition"
-	// EventServiceReportTelemetryProcedure is the fully-qualified name of the EventService's
-	// ReportTelemetry RPC.
-	EventServiceReportTelemetryProcedure = "/ebu.v1.EventService/ReportTelemetry"
+	// EventServiceExportTraceProcedure is the fully-qualified name of the EventService's ExportTrace
+	// RPC.
+	EventServiceExportTraceProcedure = "/ebu.v1.EventService/ExportTrace"
 )
 
 // EventServiceClient is a client for the ebu.v1.EventService service.
@@ -63,8 +63,9 @@ type EventServiceClient interface {
 	SaveSubscriptionPosition(context.Context, *connect.Request[v1.SaveSubscriptionPositionRequest]) (*connect.Response[v1.SaveSubscriptionPositionResponse], error)
 	// LoadSubscriptionPosition loads a subscription's saved position
 	LoadSubscriptionPosition(context.Context, *connect.Request[v1.LoadSubscriptionPositionRequest]) (*connect.Response[v1.LoadSubscriptionPositionResponse], error)
-	// ReportTelemetry accepts a stream of telemetry batches from the client
-	ReportTelemetry(context.Context) *connect.ClientStreamForClient[v1.TelemetryBatch, v1.TelemetryResponse]
+	// ExportTrace accepts OTLP trace data (compatible with OpenTelemetry collectors)
+	// This follows the OTLP/HTTP protocol for trace export
+	ExportTrace(context.Context, *connect.Request[v1.ExportTraceServiceRequest]) (*connect.Response[v1.ExportTraceServiceResponse], error)
 }
 
 // NewEventServiceClient constructs a client for the ebu.v1.EventService service. By default, it
@@ -108,10 +109,10 @@ func NewEventServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(eventServiceMethods.ByName("LoadSubscriptionPosition")),
 			connect.WithClientOptions(opts...),
 		),
-		reportTelemetry: connect.NewClient[v1.TelemetryBatch, v1.TelemetryResponse](
+		exportTrace: connect.NewClient[v1.ExportTraceServiceRequest, v1.ExportTraceServiceResponse](
 			httpClient,
-			baseURL+EventServiceReportTelemetryProcedure,
-			connect.WithSchema(eventServiceMethods.ByName("ReportTelemetry")),
+			baseURL+EventServiceExportTraceProcedure,
+			connect.WithSchema(eventServiceMethods.ByName("ExportTrace")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -124,7 +125,7 @@ type eventServiceClient struct {
 	getPosition              *connect.Client[v1.GetPositionRequest, v1.GetPositionResponse]
 	saveSubscriptionPosition *connect.Client[v1.SaveSubscriptionPositionRequest, v1.SaveSubscriptionPositionResponse]
 	loadSubscriptionPosition *connect.Client[v1.LoadSubscriptionPositionRequest, v1.LoadSubscriptionPositionResponse]
-	reportTelemetry          *connect.Client[v1.TelemetryBatch, v1.TelemetryResponse]
+	exportTrace              *connect.Client[v1.ExportTraceServiceRequest, v1.ExportTraceServiceResponse]
 }
 
 // SaveEvent calls ebu.v1.EventService.SaveEvent.
@@ -152,9 +153,9 @@ func (c *eventServiceClient) LoadSubscriptionPosition(ctx context.Context, req *
 	return c.loadSubscriptionPosition.CallUnary(ctx, req)
 }
 
-// ReportTelemetry calls ebu.v1.EventService.ReportTelemetry.
-func (c *eventServiceClient) ReportTelemetry(ctx context.Context) *connect.ClientStreamForClient[v1.TelemetryBatch, v1.TelemetryResponse] {
-	return c.reportTelemetry.CallClientStream(ctx)
+// ExportTrace calls ebu.v1.EventService.ExportTrace.
+func (c *eventServiceClient) ExportTrace(ctx context.Context, req *connect.Request[v1.ExportTraceServiceRequest]) (*connect.Response[v1.ExportTraceServiceResponse], error) {
+	return c.exportTrace.CallUnary(ctx, req)
 }
 
 // EventServiceHandler is an implementation of the ebu.v1.EventService service.
@@ -169,8 +170,9 @@ type EventServiceHandler interface {
 	SaveSubscriptionPosition(context.Context, *connect.Request[v1.SaveSubscriptionPositionRequest]) (*connect.Response[v1.SaveSubscriptionPositionResponse], error)
 	// LoadSubscriptionPosition loads a subscription's saved position
 	LoadSubscriptionPosition(context.Context, *connect.Request[v1.LoadSubscriptionPositionRequest]) (*connect.Response[v1.LoadSubscriptionPositionResponse], error)
-	// ReportTelemetry accepts a stream of telemetry batches from the client
-	ReportTelemetry(context.Context, *connect.ClientStream[v1.TelemetryBatch]) (*connect.Response[v1.TelemetryResponse], error)
+	// ExportTrace accepts OTLP trace data (compatible with OpenTelemetry collectors)
+	// This follows the OTLP/HTTP protocol for trace export
+	ExportTrace(context.Context, *connect.Request[v1.ExportTraceServiceRequest]) (*connect.Response[v1.ExportTraceServiceResponse], error)
 }
 
 // NewEventServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -210,10 +212,10 @@ func NewEventServiceHandler(svc EventServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(eventServiceMethods.ByName("LoadSubscriptionPosition")),
 		connect.WithHandlerOptions(opts...),
 	)
-	eventServiceReportTelemetryHandler := connect.NewClientStreamHandler(
-		EventServiceReportTelemetryProcedure,
-		svc.ReportTelemetry,
-		connect.WithSchema(eventServiceMethods.ByName("ReportTelemetry")),
+	eventServiceExportTraceHandler := connect.NewUnaryHandler(
+		EventServiceExportTraceProcedure,
+		svc.ExportTrace,
+		connect.WithSchema(eventServiceMethods.ByName("ExportTrace")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/ebu.v1.EventService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -228,8 +230,8 @@ func NewEventServiceHandler(svc EventServiceHandler, opts ...connect.HandlerOpti
 			eventServiceSaveSubscriptionPositionHandler.ServeHTTP(w, r)
 		case EventServiceLoadSubscriptionPositionProcedure:
 			eventServiceLoadSubscriptionPositionHandler.ServeHTTP(w, r)
-		case EventServiceReportTelemetryProcedure:
-			eventServiceReportTelemetryHandler.ServeHTTP(w, r)
+		case EventServiceExportTraceProcedure:
+			eventServiceExportTraceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -259,6 +261,6 @@ func (UnimplementedEventServiceHandler) LoadSubscriptionPosition(context.Context
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ebu.v1.EventService.LoadSubscriptionPosition is not implemented"))
 }
 
-func (UnimplementedEventServiceHandler) ReportTelemetry(context.Context, *connect.ClientStream[v1.TelemetryBatch]) (*connect.Response[v1.TelemetryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ebu.v1.EventService.ReportTelemetry is not implemented"))
+func (UnimplementedEventServiceHandler) ExportTrace(context.Context, *connect.Request[v1.ExportTraceServiceRequest]) (*connect.Response[v1.ExportTraceServiceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ebu.v1.EventService.ExportTrace is not implemented"))
 }
