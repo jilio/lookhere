@@ -11,7 +11,6 @@ import (
 	connect "connectrpc.com/connect"
 	ebuv1 "github.com/jilio/lookhere/gen/ebu/v1"
 	"github.com/jilio/lookhere/gen/ebu/v1/ebuv1connect"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestNewTelemetryCollector(t *testing.T) {
@@ -31,8 +30,8 @@ func TestNewTelemetryCollector(t *testing.T) {
 		t.Errorf("expected apiKey 'test-key', got %s", collector.apiKey)
 	}
 
-	if len(collector.metrics) != 0 {
-		t.Errorf("expected empty metrics buffer, got %d items", len(collector.metrics))
+	if len(collector.spans) != 0 {
+		t.Errorf("expected empty spans buffer, got %d items", len(collector.spans))
 	}
 }
 
@@ -64,37 +63,55 @@ func TestTelemetryCollector_OnPublishComplete(t *testing.T) {
 	time.Sleep(5 * time.Millisecond)
 	collector.OnPublishComplete(ctx, "order.created")
 
-	// Small delay to ensure metric is added
+	// Small delay to ensure span is added
 	time.Sleep(10 * time.Millisecond)
 
-	// Check that metric was added
+	// Check that span was added
 	collector.mu.Lock()
-	metricsCount := len(collector.metrics)
-	var metric *ebuv1.TelemetryMetric
-	if metricsCount > 0 {
-		metric = collector.metrics[0]
+	spansCount := len(collector.spans)
+	var span *ebuv1.Span
+	if spansCount > 0 {
+		span = collector.spans[0]
 	}
 	collector.mu.Unlock()
 
-	if metricsCount != 1 {
-		t.Fatalf("expected 1 metric, got %d", metricsCount)
+	if spansCount != 1 {
+		t.Fatalf("expected 1 span, got %d", spansCount)
 	}
 
-	if metric.Timestamp == nil {
-		t.Error("expected timestamp to be set")
+	if span.Name != "ebu.publish" {
+		t.Errorf("expected span name 'ebu.publish', got %s", span.Name)
 	}
 
-	publish := metric.GetPublish()
-	if publish == nil {
-		t.Fatal("expected PublishMetric")
+	if span.Kind != ebuv1.SpanKind_SPAN_KIND_INTERNAL {
+		t.Errorf("expected SPAN_KIND_INTERNAL, got %v", span.Kind)
 	}
 
-	if publish.EventType != "order.created" {
-		t.Errorf("expected event type 'order.created', got %s", publish.EventType)
+	if len(span.TraceId) != 16 {
+		t.Errorf("expected 16-byte trace ID, got %d bytes", len(span.TraceId))
 	}
 
-	if publish.DurationNs <= 0 {
-		t.Errorf("expected positive duration, got %d", publish.DurationNs)
+	if len(span.SpanId) != 8 {
+		t.Errorf("expected 8-byte span ID, got %d bytes", len(span.SpanId))
+	}
+
+	// Check attributes
+	found := false
+	for _, attr := range span.Attributes {
+		if attr.Key == "event.type" {
+			if attr.Value.GetStringValue() != "order.created" {
+				t.Errorf("expected event.type='order.created', got %s", attr.Value.GetStringValue())
+			}
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected event.type attribute")
+	}
+
+	if span.Status.Code != ebuv1.StatusCode_STATUS_CODE_OK {
+		t.Errorf("expected STATUS_CODE_OK, got %v", span.Status.Code)
 	}
 }
 
@@ -107,12 +124,12 @@ func TestTelemetryCollector_OnPublishComplete_NoContext(t *testing.T) {
 	ctx := context.Background()
 	collector.OnPublishComplete(ctx, "test.event")
 
-	// No metric should be added
+	// No span should be added
 	collector.mu.Lock()
 	defer collector.mu.Unlock()
 
-	if len(collector.metrics) != 0 {
-		t.Errorf("expected 0 metrics, got %d", len(collector.metrics))
+	if len(collector.spans) != 0 {
+		t.Errorf("expected 0 spans, got %d", len(collector.spans))
 	}
 }
 
@@ -144,33 +161,44 @@ func TestTelemetryCollector_OnHandlerComplete_Success(t *testing.T) {
 	time.Sleep(3 * time.Millisecond)
 	collector.OnHandlerComplete(ctx, 3*time.Millisecond, nil)
 
-	// Check metric
+	// Check span
 	collector.mu.Lock()
 	defer collector.mu.Unlock()
 
-	if len(collector.metrics) != 1 {
-		t.Fatalf("expected 1 metric, got %d", len(collector.metrics))
+	if len(collector.spans) != 1 {
+		t.Fatalf("expected 1 span, got %d", len(collector.spans))
 	}
 
-	handler := collector.metrics[0].GetHandler()
-	if handler == nil {
-		t.Fatal("expected HandlerMetric")
+	span := collector.spans[0]
+	if span.Name != "ebu.handler" {
+		t.Errorf("expected span name 'ebu.handler', got %s", span.Name)
 	}
 
-	if handler.EventType != "email.sent" {
-		t.Errorf("expected event type 'email.sent', got %s", handler.EventType)
+	// Check event.type attribute
+	var foundEventType, foundAsync bool
+	for _, attr := range span.Attributes {
+		if attr.Key == "event.type" {
+			if attr.Value.GetStringValue() != "email.sent" {
+				t.Errorf("expected event.type='email.sent', got %s", attr.Value.GetStringValue())
+			}
+			foundEventType = true
+		}
+		if attr.Key == "handler.async" {
+			if attr.Value.GetBoolValue() != false {
+				t.Error("expected handler.async=false")
+			}
+			foundAsync = true
+		}
+	}
+	if !foundEventType {
+		t.Error("expected event.type attribute")
+	}
+	if !foundAsync {
+		t.Error("expected handler.async attribute")
 	}
 
-	if handler.Async {
-		t.Error("expected async=false")
-	}
-
-	if handler.DurationNs != 3000000 { // 3ms in nanoseconds
-		t.Errorf("expected duration 3000000ns, got %d", handler.DurationNs)
-	}
-
-	if handler.Error != "" {
-		t.Errorf("expected no error, got %s", handler.Error)
+	if span.Status.Code != ebuv1.StatusCode_STATUS_CODE_OK {
+		t.Errorf("expected STATUS_CODE_OK, got %v", span.Status.Code)
 	}
 }
 
@@ -185,25 +213,44 @@ func TestTelemetryCollector_OnHandlerComplete_WithError(t *testing.T) {
 	testErr := errors.New("connection refused")
 	collector.OnHandlerComplete(ctx, 1*time.Millisecond, testErr)
 
-	// Check metric
+	// Check span
 	collector.mu.Lock()
 	defer collector.mu.Unlock()
 
-	if len(collector.metrics) != 1 {
-		t.Fatalf("expected 1 metric, got %d", len(collector.metrics))
+	if len(collector.spans) != 1 {
+		t.Fatalf("expected 1 span, got %d", len(collector.spans))
 	}
 
-	handler := collector.metrics[0].GetHandler()
-	if handler == nil {
-		t.Fatal("expected HandlerMetric")
+	span := collector.spans[0]
+
+	// Check attributes
+	var foundAsync, foundError bool
+	for _, attr := range span.Attributes {
+		if attr.Key == "handler.async" {
+			if attr.Value.GetBoolValue() != true {
+				t.Error("expected handler.async=true")
+			}
+			foundAsync = true
+		}
+		if attr.Key == "error" {
+			if attr.Value.GetStringValue() != "connection refused" {
+				t.Errorf("expected error='connection refused', got %s", attr.Value.GetStringValue())
+			}
+			foundError = true
+		}
+	}
+	if !foundAsync {
+		t.Error("expected handler.async attribute")
+	}
+	if !foundError {
+		t.Error("expected error attribute")
 	}
 
-	if !handler.Async {
-		t.Error("expected async=true")
+	if span.Status.Code != ebuv1.StatusCode_STATUS_CODE_ERROR {
+		t.Errorf("expected STATUS_CODE_ERROR, got %v", span.Status.Code)
 	}
-
-	if handler.Error != "connection refused" {
-		t.Errorf("expected error 'connection refused', got %s", handler.Error)
+	if span.Status.Message != "connection refused" {
+		t.Errorf("expected status message 'connection refused', got %s", span.Status.Message)
 	}
 }
 
@@ -235,33 +282,44 @@ func TestTelemetryCollector_OnPersistComplete_Success(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 	collector.OnPersistComplete(ctx, 10*time.Millisecond, nil)
 
-	// Check metric
+	// Check span
 	collector.mu.Lock()
 	defer collector.mu.Unlock()
 
-	if len(collector.metrics) != 1 {
-		t.Fatalf("expected 1 metric, got %d", len(collector.metrics))
+	if len(collector.spans) != 1 {
+		t.Fatalf("expected 1 span, got %d", len(collector.spans))
 	}
 
-	persist := collector.metrics[0].GetPersist()
-	if persist == nil {
-		t.Fatal("expected PersistMetric")
+	span := collector.spans[0]
+	if span.Name != "ebu.persist" {
+		t.Errorf("expected span name 'ebu.persist', got %s", span.Name)
 	}
 
-	if persist.EventType != "inventory.adjusted" {
-		t.Errorf("expected event type 'inventory.adjusted', got %s", persist.EventType)
+	// Check attributes
+	var foundEventType, foundPosition bool
+	for _, attr := range span.Attributes {
+		if attr.Key == "event.type" {
+			if attr.Value.GetStringValue() != "inventory.adjusted" {
+				t.Errorf("expected event.type='inventory.adjusted', got %s", attr.Value.GetStringValue())
+			}
+			foundEventType = true
+		}
+		if attr.Key == "event.position" {
+			if attr.Value.GetIntValue() != 123 {
+				t.Errorf("expected event.position=123, got %d", attr.Value.GetIntValue())
+			}
+			foundPosition = true
+		}
+	}
+	if !foundEventType {
+		t.Error("expected event.type attribute")
+	}
+	if !foundPosition {
+		t.Error("expected event.position attribute")
 	}
 
-	if persist.Position != 123 {
-		t.Errorf("expected position 123, got %d", persist.Position)
-	}
-
-	if persist.DurationNs != 10000000 { // 10ms in nanoseconds
-		t.Errorf("expected duration 10000000ns, got %d", persist.DurationNs)
-	}
-
-	if persist.Error != "" {
-		t.Errorf("expected no error, got %s", persist.Error)
+	if span.Status.Code != ebuv1.StatusCode_STATUS_CODE_OK {
+		t.Errorf("expected STATUS_CODE_OK, got %v", span.Status.Code)
 	}
 }
 
@@ -276,40 +334,54 @@ func TestTelemetryCollector_OnPersistComplete_WithError(t *testing.T) {
 	testErr := errors.New("database connection lost")
 	collector.OnPersistComplete(ctx, 5*time.Millisecond, testErr)
 
-	// Check metric
+	// Check span
 	collector.mu.Lock()
 	defer collector.mu.Unlock()
 
-	persist := collector.metrics[0].GetPersist()
-	if persist == nil {
-		t.Fatal("expected PersistMetric")
+	span := collector.spans[0]
+	if span == nil {
+		t.Fatal("expected span")
 	}
 
-	if persist.Error != "database connection lost" {
-		t.Errorf("expected error 'database connection lost', got %s", persist.Error)
+	// Check error in attributes and status
+	var foundError bool
+	for _, attr := range span.Attributes {
+		if attr.Key == "error" {
+			if attr.Value.GetStringValue() != "database connection lost" {
+				t.Errorf("expected error='database connection lost', got %s", attr.Value.GetStringValue())
+			}
+			foundError = true
+		}
+	}
+	if !foundError {
+		t.Error("expected error attribute")
+	}
+
+	if span.Status.Code != ebuv1.StatusCode_STATUS_CODE_ERROR {
+		t.Errorf("expected STATUS_CODE_ERROR, got %v", span.Status.Code)
 	}
 }
 
-func TestTelemetryCollector_AddMetric_Batching(t *testing.T) {
+func TestTelemetryCollector_AddSpan_Batching(t *testing.T) {
 	httpClient := createHTTPClient()
 	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
 	collector.batchSize = 3 // Small batch for testing
 	defer collector.Close()
 
-	// Add 5 metrics
+	// Add 5 spans
 	for i := 0; i < 5; i++ {
 		ctx := context.Background()
 		ctx = collector.OnPublishStart(ctx, "test.event")
 		collector.OnPublishComplete(ctx, "test.event")
 	}
 
-	// Buffer should have 2 metrics (3 were flushed)
+	// Buffer should have 2 spans (3 were flushed)
 	collector.mu.Lock()
-	bufferSize := len(collector.metrics)
+	bufferSize := len(collector.spans)
 	collector.mu.Unlock()
 
 	if bufferSize != 2 {
-		t.Errorf("expected 2 metrics in buffer, got %d", bufferSize)
+		t.Errorf("expected 2 spans in buffer, got %d", bufferSize)
 	}
 }
 
@@ -317,7 +389,7 @@ func TestTelemetryCollector_Close(t *testing.T) {
 	httpClient := createHTTPClient()
 	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
 
-	// Add some metrics
+	// Add some spans
 	ctx := context.Background()
 	ctx = collector.OnPublishStart(ctx, "test.event")
 	collector.OnPublishComplete(ctx, "test.event")
@@ -337,55 +409,55 @@ func TestTelemetryCollector_Close(t *testing.T) {
 	}
 }
 
-func TestTelemetryCollector_MultipleMetricTypes(t *testing.T) {
+func TestTelemetryCollector_MultipleSpanTypes(t *testing.T) {
 	httpClient := createHTTPClient()
 	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
 	defer collector.Close()
 
 	ctx := context.Background()
 
-	// Add publish metric
+	// Add publish span
 	ctx1 := collector.OnPublishStart(ctx, "event1")
 	collector.OnPublishComplete(ctx1, "event1")
 
-	// Add handler metric
+	// Add handler span
 	ctx2 := collector.OnHandlerStart(ctx, "event2", true)
 	collector.OnHandlerComplete(ctx2, 1*time.Millisecond, nil)
 
-	// Add persist metric
+	// Add persist span
 	ctx3 := collector.OnPersistStart(ctx, "event3", 100)
 	collector.OnPersistComplete(ctx3, 2*time.Millisecond, nil)
 
-	// Check all three metrics
+	// Check all three spans
 	collector.mu.Lock()
 	defer collector.mu.Unlock()
 
-	if len(collector.metrics) != 3 {
-		t.Fatalf("expected 3 metrics, got %d", len(collector.metrics))
+	if len(collector.spans) != 3 {
+		t.Fatalf("expected 3 spans, got %d", len(collector.spans))
 	}
 
-	// Verify each metric type
+	// Verify each span type
 	var hasPublish, hasHandler, hasPersist bool
-	for _, metric := range collector.metrics {
-		if metric.GetPublish() != nil {
+	for _, span := range collector.spans {
+		if span.Name == "ebu.publish" {
 			hasPublish = true
 		}
-		if metric.GetHandler() != nil {
+		if span.Name == "ebu.handler" {
 			hasHandler = true
 		}
-		if metric.GetPersist() != nil {
+		if span.Name == "ebu.persist" {
 			hasPersist = true
 		}
 	}
 
 	if !hasPublish {
-		t.Error("expected at least one PublishMetric")
+		t.Error("expected at least one publish span")
 	}
 	if !hasHandler {
-		t.Error("expected at least one HandlerMetric")
+		t.Error("expected at least one handler span")
 	}
 	if !hasPersist {
-		t.Error("expected at least one PersistMetric")
+		t.Error("expected at least one persist span")
 	}
 }
 
@@ -394,6 +466,7 @@ func TestTelemetryCollector_TimestampsAreSet(t *testing.T) {
 	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
 	defer collector.Close()
 
+	startTime := time.Now()
 	ctx := context.Background()
 	ctx = collector.OnPublishStart(ctx, "timestamped.event")
 	collector.OnPublishComplete(ctx, "timestamped.event")
@@ -401,22 +474,24 @@ func TestTelemetryCollector_TimestampsAreSet(t *testing.T) {
 	collector.mu.Lock()
 	defer collector.mu.Unlock()
 
-	metric := collector.metrics[0]
-	if metric.Timestamp == nil {
-		t.Fatal("expected timestamp to be set")
+	span := collector.spans[0]
+	if span.StartTimeUnixNano == 0 {
+		t.Fatal("expected start time to be set")
+	}
+	if span.EndTimeUnixNano == 0 {
+		t.Fatal("expected end time to be set")
 	}
 
-	if !metric.Timestamp.IsValid() {
-		t.Error("expected valid timestamp")
+	// Timestamps should be reasonable
+	spanStart := time.Unix(0, int64(span.StartTimeUnixNano))
+	spanEnd := time.Unix(0, int64(span.EndTimeUnixNano))
+
+	if spanStart.Before(startTime.Add(-time.Second)) || spanStart.After(time.Now().Add(time.Second)) {
+		t.Errorf("span start time seems wrong: %v", spanStart)
 	}
 
-	// Timestamp should be recent (within last second)
-	now := time.Now()
-	metricTime := metric.Timestamp.AsTime()
-	diff := now.Sub(metricTime)
-
-	if diff < 0 || diff > time.Second {
-		t.Errorf("timestamp seems wrong: %v (diff from now: %v)", metricTime, diff)
+	if spanEnd.Before(spanStart) {
+		t.Error("end time should be after start time")
 	}
 }
 
@@ -442,13 +517,13 @@ func TestTelemetryCollector_ConcurrentAccess(t *testing.T) {
 		<-done
 	}
 
-	// Should have some metrics (may be less than 10 due to batching)
+	// Should have some spans (may be less than 10 due to batching)
 	collector.mu.Lock()
-	count := len(collector.metrics)
+	count := len(collector.spans)
 	collector.mu.Unlock()
 
 	if count == 0 {
-		t.Error("expected at least some metrics after concurrent access")
+		t.Error("expected at least some spans after concurrent access")
 	}
 }
 
@@ -457,29 +532,29 @@ func TestTelemetryCollector_Flush(t *testing.T) {
 	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
 	defer collector.Close()
 
-	// Add metrics below batch threshold
+	// Add spans below batch threshold
 	ctx := context.Background()
 	ctx = collector.OnPublishStart(ctx, "flush.test")
 	collector.OnPublishComplete(ctx, "flush.test")
 
-	// Verify metrics in buffer
+	// Verify spans in buffer
 	collector.mu.Lock()
-	initialCount := len(collector.metrics)
+	initialCount := len(collector.spans)
 	collector.mu.Unlock()
 
 	if initialCount != 1 {
-		t.Fatalf("expected 1 metric before flush, got %d", initialCount)
+		t.Fatalf("expected 1 span before flush, got %d", initialCount)
 	}
 
 	// Flush should clear the buffer
 	collector.flush()
 
 	collector.mu.Lock()
-	afterCount := len(collector.metrics)
+	afterCount := len(collector.spans)
 	collector.mu.Unlock()
 
 	if afterCount != 0 {
-		t.Errorf("expected 0 metrics after flush, got %d", afterCount)
+		t.Errorf("expected 0 spans after flush, got %d", afterCount)
 	}
 }
 
@@ -488,15 +563,15 @@ func TestTelemetryCollector_EmptyFlush(t *testing.T) {
 	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
 	defer collector.Close()
 
-	// Flush with no metrics should not panic
+	// Flush with no spans should not panic
 	collector.flush()
 
 	collector.mu.Lock()
-	count := len(collector.metrics)
+	count := len(collector.spans)
 	collector.mu.Unlock()
 
 	if count != 0 {
-		t.Errorf("expected 0 metrics after empty flush, got %d", count)
+		t.Errorf("expected 0 spans after empty flush, got %d", count)
 	}
 }
 
@@ -522,20 +597,24 @@ func TestTelemetryCollector_EventTypePreserved(t *testing.T) {
 	collector.mu.Lock()
 	defer collector.mu.Unlock()
 
-	if len(collector.metrics) != len(testCases) {
-		t.Fatalf("expected %d metrics, got %d", len(testCases), len(collector.metrics))
+	if len(collector.spans) != len(testCases) {
+		t.Fatalf("expected %d spans, got %d", len(testCases), len(collector.spans))
 	}
 
-	for i, metric := range collector.metrics {
-		publish := metric.GetPublish()
-		if publish == nil {
-			t.Errorf("metric %d: expected PublishMetric", i)
-			continue
+	for i, span := range collector.spans {
+		found := false
+		for _, attr := range span.Attributes {
+			if attr.Key == "event.type" {
+				if attr.Value.GetStringValue() != testCases[i] {
+					t.Errorf("span %d: expected event.type %q, got %q",
+						i, testCases[i], attr.Value.GetStringValue())
+				}
+				found = true
+				break
+			}
 		}
-
-		if publish.EventType != testCases[i] {
-			t.Errorf("metric %d: expected event type %q, got %q",
-				i, testCases[i], publish.EventType)
+		if !found {
+			t.Errorf("span %d: missing event.type attribute", i)
 		}
 	}
 }
@@ -547,18 +626,18 @@ func TestTelemetryCollector_FlushLoop_TickerFires(t *testing.T) {
 	collector.interval = 50 * time.Millisecond
 	defer collector.Close()
 
-	// Add a metric
+	// Add a span
 	ctx := context.Background()
 	ctx = collector.OnPublishStart(ctx, "test.event")
 	collector.OnPublishComplete(ctx, "test.event")
 
-	// Verify metric is in buffer
+	// Verify span is in buffer
 	collector.mu.Lock()
-	initialCount := len(collector.metrics)
+	initialCount := len(collector.spans)
 	collector.mu.Unlock()
 
 	if initialCount != 1 {
-		t.Fatalf("expected 1 metric in buffer, got %d", initialCount)
+		t.Fatalf("expected 1 span in buffer, got %d", initialCount)
 	}
 
 	// Wait for ticker to fire and flush
@@ -566,11 +645,11 @@ func TestTelemetryCollector_FlushLoop_TickerFires(t *testing.T) {
 
 	// Buffer should be cleared by ticker
 	collector.mu.Lock()
-	afterCount := len(collector.metrics)
+	afterCount := len(collector.spans)
 	collector.mu.Unlock()
 
 	if afterCount != 0 {
-		t.Errorf("expected 0 metrics after ticker flush, got %d", afterCount)
+		t.Errorf("expected 0 spans after ticker flush, got %d", afterCount)
 	}
 }
 
@@ -579,16 +658,16 @@ func TestTelemetryCollector_OnHandlerComplete_NoContext(t *testing.T) {
 	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
 	defer collector.Close()
 
-	// Complete without start - should not panic or add metric
+	// Complete without start - should not panic or add span
 	ctx := context.Background()
 	collector.OnHandlerComplete(ctx, 1*time.Millisecond, nil)
 
-	// No metric should be added
+	// No span should be added
 	collector.mu.Lock()
 	defer collector.mu.Unlock()
 
-	if len(collector.metrics) != 0 {
-		t.Errorf("expected 0 metrics, got %d", len(collector.metrics))
+	if len(collector.spans) != 0 {
+		t.Errorf("expected 0 spans, got %d", len(collector.spans))
 	}
 }
 
@@ -597,16 +676,16 @@ func TestTelemetryCollector_OnPersistComplete_NoContext(t *testing.T) {
 	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
 	defer collector.Close()
 
-	// Complete without start - should not panic or add metric
+	// Complete without start - should not panic or add span
 	ctx := context.Background()
 	collector.OnPersistComplete(ctx, 1*time.Millisecond, nil)
 
-	// No metric should be added
+	// No span should be added
 	collector.mu.Lock()
 	defer collector.mu.Unlock()
 
-	if len(collector.metrics) != 0 {
-		t.Errorf("expected 0 metrics, got %d", len(collector.metrics))
+	if len(collector.spans) != 0 {
+		t.Errorf("expected 0 spans, got %d", len(collector.spans))
 	}
 }
 
@@ -617,28 +696,39 @@ func TestTelemetryCollector_SendBatch_ErrorHandling(t *testing.T) {
 	collector := NewTelemetryCollector(httpClient, "http://localhost:1", "test-key")
 	defer collector.Close()
 
-	// Create a test metric
-	metric := &ebuv1.TelemetryMetric{
-		Timestamp: timestamppb.Now(),
-		Metric: &ebuv1.TelemetryMetric_Publish{
-			Publish: &ebuv1.PublishMetric{
-				EventType:  "test.event",
-				DurationNs: 1000000,
+	// Create a test span
+	span := &ebuv1.Span{
+		TraceId:           generateTraceID(),
+		SpanId:            generateSpanID(),
+		Name:              "test.span",
+		Kind:              ebuv1.SpanKind_SPAN_KIND_INTERNAL,
+		StartTimeUnixNano: uint64(time.Now().UnixNano()),
+		EndTimeUnixNano:   uint64(time.Now().UnixNano()),
+		Attributes: []*ebuv1.KeyValue{
+			{
+				Key: "test",
+				Value: &ebuv1.AnyValue{
+					Value: &ebuv1.AnyValue_StringValue{
+						StringValue: "value",
+					},
+				},
 			},
+		},
+		Status: &ebuv1.Status{
+			Code: ebuv1.StatusCode_STATUS_CODE_OK,
 		},
 	}
 
 	// Call sendBatch directly - this should log errors but not panic
-	// We can't easily verify the log output, but we verify it doesn't panic
-	collector.sendBatch([]*ebuv1.TelemetryMetric{metric})
+	collector.sendBatch([]*ebuv1.Span{span})
 
 	// If we get here without panic, error handling worked
 }
 
-func TestTelemetryCollector_SendBatch_CountMismatch(t *testing.T) {
-	// Create a mock server that returns incorrect count
+func TestTelemetryCollector_SendBatch_PartialSuccess(t *testing.T) {
+	// Create a mock server that returns partial success
 	mux := http.NewServeMux()
-	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockEventServiceWithMismatch{}))
+	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockOTLPServiceWithPartialFailure{}))
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -646,61 +736,56 @@ func TestTelemetryCollector_SendBatch_CountMismatch(t *testing.T) {
 	collector := NewTelemetryCollector(httpClient, server.URL, "test-key")
 	defer collector.Close()
 
-	// Create test metrics
-	metrics := []*ebuv1.TelemetryMetric{
+	// Create test spans
+	spans := []*ebuv1.Span{
 		{
-			Timestamp: timestamppb.Now(),
-			Metric: &ebuv1.TelemetryMetric_Publish{
-				Publish: &ebuv1.PublishMetric{
-					EventType:  "test1",
-					DurationNs: 1000000,
-				},
-			},
+			TraceId:           generateTraceID(),
+			SpanId:            generateSpanID(),
+			Name:              "test1",
+			Kind:              ebuv1.SpanKind_SPAN_KIND_INTERNAL,
+			StartTimeUnixNano: uint64(time.Now().UnixNano()),
+			EndTimeUnixNano:   uint64(time.Now().UnixNano()),
+			Status:            &ebuv1.Status{Code: ebuv1.StatusCode_STATUS_CODE_OK},
 		},
 		{
-			Timestamp: timestamppb.Now(),
-			Metric: &ebuv1.TelemetryMetric_Publish{
-				Publish: &ebuv1.PublishMetric{
-					EventType:  "test2",
-					DurationNs: 2000000,
-				},
-			},
+			TraceId:           generateTraceID(),
+			SpanId:            generateSpanID(),
+			Name:              "test2",
+			Kind:              ebuv1.SpanKind_SPAN_KIND_INTERNAL,
+			StartTimeUnixNano: uint64(time.Now().UnixNano()),
+			EndTimeUnixNano:   uint64(time.Now().UnixNano()),
+			Status:            &ebuv1.Status{Code: ebuv1.StatusCode_STATUS_CODE_OK},
 		},
 	}
 
-	// Call sendBatch - should log count mismatch but not panic
-	collector.sendBatch(metrics)
+	// Call sendBatch - should log partial failure but not panic
+	collector.sendBatch(spans)
 
 	// If we get here without panic, error handling worked
 }
 
-// mockEventServiceWithMismatch implements a partial EventService that returns wrong count
-type mockEventServiceWithMismatch struct {
+// mockOTLPServiceWithPartialFailure implements OTLP service with partial failures
+type mockOTLPServiceWithPartialFailure struct {
 	ebuv1connect.UnimplementedEventServiceHandler
 }
 
-func (m *mockEventServiceWithMismatch) ReportTelemetry(
+func (m *mockOTLPServiceWithPartialFailure) ExportTrace(
 	ctx context.Context,
-	stream *connect.ClientStream[ebuv1.TelemetryBatch],
-) (*connect.Response[ebuv1.TelemetryResponse], error) {
-	// Receive the batch
-	for stream.Receive() {
-		// Just consume, don't process
-	}
-	if stream.Err() != nil {
-		return nil, stream.Err()
-	}
-
-	// Return wrong count (1 instead of actual count)
-	return connect.NewResponse(&ebuv1.TelemetryResponse{
-		ReceivedCount: 1, // Always return 1 to trigger mismatch
+	req *connect.Request[ebuv1.ExportTraceServiceRequest],
+) (*connect.Response[ebuv1.ExportTraceServiceResponse], error) {
+	// Return partial success (reject 1 span)
+	return connect.NewResponse(&ebuv1.ExportTraceServiceResponse{
+		PartialSuccess: &ebuv1.ExportTracePartialSuccess{
+			RejectedSpans: 1,
+			ErrorMessage:  "some spans rejected",
+		},
 	}), nil
 }
 
 func TestTelemetryCollector_SendBatch_StreamError(t *testing.T) {
-	// Create a mock server that returns error on receive
+	// Create a mock server that returns error
 	mux := http.NewServeMux()
-	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockEventServiceWithError{}))
+	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockOTLPServiceWithError{}))
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -708,32 +793,32 @@ func TestTelemetryCollector_SendBatch_StreamError(t *testing.T) {
 	collector := NewTelemetryCollector(httpClient, server.URL, "test-key")
 	defer collector.Close()
 
-	// Create a test metric
-	metric := &ebuv1.TelemetryMetric{
-		Timestamp: timestamppb.Now(),
-		Metric: &ebuv1.TelemetryMetric_Publish{
-			Publish: &ebuv1.PublishMetric{
-				EventType:  "test.event",
-				DurationNs: 1000000,
-			},
-		},
+	// Create a test span
+	span := &ebuv1.Span{
+		TraceId:           generateTraceID(),
+		SpanId:            generateSpanID(),
+		Name:              "test.span",
+		Kind:              ebuv1.SpanKind_SPAN_KIND_INTERNAL,
+		StartTimeUnixNano: uint64(time.Now().UnixNano()),
+		EndTimeUnixNano:   uint64(time.Now().UnixNano()),
+		Status:            &ebuv1.Status{Code: ebuv1.StatusCode_STATUS_CODE_OK},
 	}
 
 	// Call sendBatch - should log error but not panic
-	collector.sendBatch([]*ebuv1.TelemetryMetric{metric})
+	collector.sendBatch([]*ebuv1.Span{span})
 
 	// If we get here without panic, error handling worked
 }
 
-// mockEventServiceWithError implements a partial EventService that returns errors
-type mockEventServiceWithError struct {
+// mockOTLPServiceWithError implements OTLP service that returns errors
+type mockOTLPServiceWithError struct {
 	ebuv1connect.UnimplementedEventServiceHandler
 }
 
-func (m *mockEventServiceWithError) ReportTelemetry(
+func (m *mockOTLPServiceWithError) ExportTrace(
 	ctx context.Context,
-	stream *connect.ClientStream[ebuv1.TelemetryBatch],
-) (*connect.Response[ebuv1.TelemetryResponse], error) {
+	req *connect.Request[ebuv1.ExportTraceServiceRequest],
+) (*connect.Response[ebuv1.ExportTraceServiceResponse], error) {
 	// Return an error
 	return nil, connect.NewError(connect.CodeInternal, errors.New("mock server error"))
 }
@@ -751,15 +836,15 @@ func TestTelemetryCollector_Stats(t *testing.T) {
 	if stats.BatchesFailed != 0 {
 		t.Errorf("expected 0 batches failed, got %d", stats.BatchesFailed)
 	}
-	if stats.MetricsSent != 0 {
-		t.Errorf("expected 0 metrics sent, got %d", stats.MetricsSent)
+	if stats.SpansSent != 0 {
+		t.Errorf("expected 0 spans sent, got %d", stats.SpansSent)
 	}
 }
 
 func TestTelemetryCollector_Stats_AfterSuccess(t *testing.T) {
-	// Create a mock server that accepts metrics
+	// Create a mock server that accepts spans
 	mux := http.NewServeMux()
-	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockEventService{}))
+	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockOTLPService{}))
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -767,7 +852,7 @@ func TestTelemetryCollector_Stats_AfterSuccess(t *testing.T) {
 	collector := NewTelemetryCollector(httpClient, server.URL, "test-key")
 	defer collector.Close()
 
-	// Add some metrics
+	// Add some spans
 	ctx := context.Background()
 	ctx = collector.OnPublishStart(ctx, "test.event")
 	collector.OnPublishComplete(ctx, "test.event")
@@ -783,8 +868,8 @@ func TestTelemetryCollector_Stats_AfterSuccess(t *testing.T) {
 	if stats.BatchesSent == 0 {
 		t.Error("expected at least 1 batch sent")
 	}
-	if stats.MetricsSent == 0 {
-		t.Error("expected at least 1 metric sent")
+	if stats.SpansSent == 0 {
+		t.Error("expected at least 1 span sent")
 	}
 	if stats.LastSuccessTime.IsZero() {
 		t.Error("expected LastSuccessTime to be set")
@@ -794,7 +879,7 @@ func TestTelemetryCollector_Stats_AfterSuccess(t *testing.T) {
 func TestTelemetryCollector_Stats_AfterError(t *testing.T) {
 	// Create a mock server that returns errors
 	mux := http.NewServeMux()
-	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockEventServiceWithError{}))
+	mux.Handle(ebuv1connect.NewEventServiceHandler(&mockOTLPServiceWithError{}))
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -802,7 +887,7 @@ func TestTelemetryCollector_Stats_AfterError(t *testing.T) {
 	collector := NewTelemetryCollector(httpClient, server.URL, "test-key")
 	defer collector.Close()
 
-	// Add a metric
+	// Add a span
 	ctx := context.Background()
 	ctx = collector.OnPublishStart(ctx, "test.event")
 	collector.OnPublishComplete(ctx, "test.event")
@@ -829,62 +914,73 @@ func TestTelemetryCollector_Stats_AfterError(t *testing.T) {
 func TestTelemetryCollector_Backpressure_DropsWhenQueueFull(t *testing.T) {
 	httpClient := createHTTPClient()
 	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
-	// Override with zero-buffer queue
-	collector.batchQueue = make(chan []*ebuv1.TelemetryMetric, 0) // No buffer
+
+	// Cancel context to stop workers, then replace with zero-buffer queue
+	collector.cancel()
+	collector.wg.Wait()
+
+	// Now replace queue with unbuffered channel
+	collector.batchQueue = make(chan []*ebuv1.Span, 0) // No buffer
 	defer collector.Close()
 
-	// Add metrics to buffer
+	// Add spans and flush - workers are stopped so queue will fill
 	ctx := context.Background()
 	ctx = collector.OnPublishStart(ctx, "test.event")
 	collector.OnPublishComplete(ctx, "test.event")
 
-	// Try to flush multiple times rapidly - should drop because channel is unbuffered
-	// and workers aren't processing
-	collector.flush() // First one might queue
-	collector.flush() // This should drop (channel full, no buffer)
+	// First flush - will block trying to send
+	go collector.flush()
+
+	// Wait a moment for flush to block
+	time.Sleep(10 * time.Millisecond)
+
+	// Second flush - should drop because channel is full
+	collector.flush()
 
 	// Check stats
 	stats := collector.Stats()
 	if stats.BatchesDropped == 0 {
 		t.Error("expected at least one batch dropped when queue is full")
 	}
-	if stats.MetricsDropped == 0 {
-		t.Error("expected at least one metric dropped when queue is full")
+	if stats.SpansDropped == 0 {
+		t.Error("expected at least one span dropped when queue is full")
 	}
 }
 
-func TestTelemetryCollector_Backpressure_DropsInAddMetric(t *testing.T) {
+func TestTelemetryCollector_Backpressure_DropsInAddSpan(t *testing.T) {
 	httpClient := createHTTPClient()
 	collector := NewTelemetryCollector(httpClient, "https://lookhere.tech", "test-key")
-	// Override with zero-buffer queue and small batch size
-	collector.batchQueue = make(chan []*ebuv1.TelemetryMetric, 0) // No buffer
-	collector.batchSize = 5                                        // Small batch
+	collector.batchSize = 5 // Small batch
+
+	// Cancel context to stop workers
+	collector.cancel()
+	collector.wg.Wait()
+
+	// Replace with zero-buffer queue
+	collector.batchQueue = make(chan []*ebuv1.Span, 0) // No buffer
 	defer collector.Close()
 
-	// Add enough metrics to trigger batch size flush in addMetric
+	// Add enough spans to trigger batch size flush in addSpan
 	ctx := context.Background()
 	for i := 0; i < 10; i++ { // Add twice the batch size
 		ctx = collector.OnPublishStart(ctx, "test.event")
 		collector.OnPublishComplete(ctx, "test.event")
 	}
 
-	// Wait a moment for processing
-	time.Sleep(50 * time.Millisecond)
-
-	// Check stats - should have dropped some batches when addMetric hit batchSize
+	// Check stats - should have dropped some batches when addSpan hit batchSize
 	stats := collector.Stats()
 	if stats.BatchesDropped == 0 {
-		t.Error("expected at least one batch dropped in addMetric when queue is full")
+		t.Error("expected at least one batch dropped in addSpan when queue is full")
 	}
-	if stats.MetricsDropped == 0 {
-		t.Error("expected at least one metric dropped in addMetric when queue is full")
+	if stats.SpansDropped == 0 {
+		t.Error("expected at least one span dropped in addSpan when queue is full")
 	}
 }
 
 func TestTelemetryCollector_SendsAuthorizationHeader(t *testing.T) {
 	// Create a mock server that captures headers
 	var receivedAuth string
-	mockService := &mockEventServiceWithAuthCapture{
+	mockService := &mockOTLPServiceWithAuthCapture{
 		authCapture: &receivedAuth,
 	}
 	mux := http.NewServeMux()
@@ -896,7 +992,7 @@ func TestTelemetryCollector_SendsAuthorizationHeader(t *testing.T) {
 	collector := NewTelemetryCollector(httpClient, server.URL, "test-api-key-123")
 	defer collector.Close()
 
-	// Add and send a metric
+	// Add and send a span
 	ctx := context.Background()
 	ctx = collector.OnPublishStart(ctx, "test.event")
 	collector.OnPublishComplete(ctx, "test.event")
@@ -914,28 +1010,29 @@ func TestTelemetryCollector_SendsAuthorizationHeader(t *testing.T) {
 	}
 }
 
-// mockEventServiceWithAuthCapture captures the Authorization header
-type mockEventServiceWithAuthCapture struct {
+// mockOTLPService implements basic OTLP trace service
+type mockOTLPService struct {
+	ebuv1connect.UnimplementedEventServiceHandler
+}
+
+func (m *mockOTLPService) ExportTrace(
+	ctx context.Context,
+	req *connect.Request[ebuv1.ExportTraceServiceRequest],
+) (*connect.Response[ebuv1.ExportTraceServiceResponse], error) {
+	return connect.NewResponse(&ebuv1.ExportTraceServiceResponse{}), nil
+}
+
+// mockOTLPServiceWithAuthCapture captures the Authorization header
+type mockOTLPServiceWithAuthCapture struct {
 	ebuv1connect.UnimplementedEventServiceHandler
 	authCapture *string
 }
 
-func (m *mockEventServiceWithAuthCapture) ReportTelemetry(
+func (m *mockOTLPServiceWithAuthCapture) ExportTrace(
 	ctx context.Context,
-	stream *connect.ClientStream[ebuv1.TelemetryBatch],
-) (*connect.Response[ebuv1.TelemetryResponse], error) {
+	req *connect.Request[ebuv1.ExportTraceServiceRequest],
+) (*connect.Response[ebuv1.ExportTraceServiceResponse], error) {
 	// Capture authorization header
-	*m.authCapture = stream.RequestHeader().Get("Authorization")
-
-	count := int64(0)
-	for stream.Receive() {
-		batch := stream.Msg()
-		count += int64(len(batch.Metrics))
-	}
-	if err := stream.Err(); err != nil {
-		return nil, err
-	}
-	return connect.NewResponse(&ebuv1.TelemetryResponse{
-		ReceivedCount: count,
-	}), nil
+	*m.authCapture = req.Header().Get("Authorization")
+	return connect.NewResponse(&ebuv1.ExportTraceServiceResponse{}), nil
 }

@@ -2,26 +2,36 @@ package lookhere
 
 import (
 	"context"
+	"crypto/rand"
 	"log"
 	"net/http"
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	ebuv1 "github.com/jilio/lookhere/gen/ebu/v1"
 	"github.com/jilio/lookhere/gen/ebu/v1/ebuv1connect"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// Context keys for tracking metrics
+// Context keys for tracking spans
 type publishStartKey struct{}
 type handlerStartKey struct{}
 type persistStartKey struct{}
+
+// publishMeta stores publish metadata in context
+type publishMeta struct {
+	start   time.Time
+	traceID []byte
+	spanID  []byte
+}
 
 // handlerMeta stores handler metadata in context
 type handlerMeta struct {
 	start     time.Time
 	eventType string
 	async     bool
+	traceID   []byte
+	spanID    []byte
 }
 
 // persistMeta stores persist metadata in context
@@ -29,6 +39,8 @@ type persistMeta struct {
 	start     time.Time
 	eventType string
 	position  int64
+	traceID   []byte
+	spanID    []byte
 }
 
 const (
@@ -47,34 +59,34 @@ type TelemetryStats struct {
 	BatchesSent     int64
 	BatchesFailed   int64
 	BatchesDropped  int64
-	MetricsSent     int64
-	MetricsDropped  int64
+	SpansSent       int64
+	SpansDropped    int64
 	LastSuccessTime time.Time
 	LastErrorTime   time.Time
 	LastError       string
 }
 
 // TelemetryCollector implements the eventbus.Observability interface
-// and batches telemetry metrics to send to the remote lookhere server.
+// and batches OTLP spans to send to the remote lookhere server.
 type TelemetryCollector struct {
 	client    ebuv1connect.EventServiceClient
 	apiKey    string
 	batchSize int
 	interval  time.Duration
 
-	mu      sync.Mutex
-	metrics []*ebuv1.TelemetryMetric
-	stats   TelemetryStats
+	mu    sync.Mutex
+	spans []*ebuv1.Span
+	stats TelemetryStats
 
 	// Worker pool for sending batches
-	batchQueue chan []*ebuv1.TelemetryMetric
+	batchQueue chan []*ebuv1.Span
 
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 }
 
-// NewTelemetryCollector creates a new telemetry collector that sends metrics
+// NewTelemetryCollector creates a new telemetry collector that sends OTLP spans
 // to the remote lookhere server.
 func NewTelemetryCollector(httpClient *http.Client, baseURL, apiKey string) *TelemetryCollector {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -84,8 +96,8 @@ func NewTelemetryCollector(httpClient *http.Client, baseURL, apiKey string) *Tel
 		apiKey:     apiKey,
 		batchSize:  DefaultBatchSize,
 		interval:   DefaultFlushInterval,
-		metrics:    make([]*ebuv1.TelemetryMetric, 0, DefaultBatchSize),
-		batchQueue: make(chan []*ebuv1.TelemetryMetric, DefaultMaxQueueSize),
+		spans:      make([]*ebuv1.Span, 0, DefaultBatchSize),
+		batchQueue: make(chan []*ebuv1.Span, DefaultMaxQueueSize),
 		ctx:        ctx,
 		cancel:     cancel,
 	}
@@ -96,7 +108,7 @@ func NewTelemetryCollector(httpClient *http.Client, baseURL, apiKey string) *Tel
 		go tc.worker()
 	}
 
-	// Start background goroutine to flush metrics periodically
+	// Start background goroutine to flush spans periodically
 	tc.wg.Add(1)
 	go tc.flushLoop()
 
@@ -116,7 +128,7 @@ func (tc *TelemetryCollector) worker() {
 	}
 }
 
-// flushLoop periodically flushes metrics to the server
+// flushLoop periodically flushes spans to the server
 func (tc *TelemetryCollector) flushLoop() {
 	defer tc.wg.Done()
 	ticker := time.NewTicker(tc.interval)
@@ -134,18 +146,18 @@ func (tc *TelemetryCollector) flushLoop() {
 	}
 }
 
-// flush sends accumulated metrics to the server
+// flush sends accumulated spans to the server
 func (tc *TelemetryCollector) flush() {
 	tc.mu.Lock()
-	if len(tc.metrics) == 0 {
+	if len(tc.spans) == 0 {
 		tc.mu.Unlock()
 		return
 	}
 
 	// Take current batch and reset buffer
-	batch := tc.metrics
+	batch := tc.spans
 	batchSize := int64(len(batch))
-	tc.metrics = make([]*ebuv1.TelemetryMetric, 0, tc.batchSize)
+	tc.spans = make([]*ebuv1.Span, 0, tc.batchSize)
 	tc.mu.Unlock()
 
 	// Send to worker pool (non-blocking with backpressure)
@@ -156,9 +168,9 @@ func (tc *TelemetryCollector) flush() {
 		// Queue is full - drop batch and log
 		tc.mu.Lock()
 		tc.stats.BatchesDropped++
-		tc.stats.MetricsDropped += batchSize
+		tc.stats.SpansDropped += batchSize
 		tc.mu.Unlock()
-		log.Printf("lookhere: telemetry queue full, dropping batch of %d metrics", batchSize)
+		log.Printf("lookhere: telemetry queue full, dropping batch of %d spans", batchSize)
 	}
 }
 
@@ -170,64 +182,94 @@ func (tc *TelemetryCollector) Stats() TelemetryStats {
 	return tc.stats
 }
 
-// sendBatch sends a batch of metrics to the server
-func (tc *TelemetryCollector) sendBatch(metrics []*ebuv1.TelemetryMetric) {
+// sendBatch sends a batch of OTLP spans to the server
+func (tc *TelemetryCollector) sendBatch(spans []*ebuv1.Span) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	stream := tc.client.ReportTelemetry(ctx)
-
-	// Set authorization header
-	stream.RequestHeader().Set("Authorization", "Bearer "+tc.apiKey)
-
-	// Send batch
-	if err := stream.Send(&ebuv1.TelemetryBatch{
-		Metrics: metrics,
-	}); err != nil {
-		tc.mu.Lock()
-		tc.stats.BatchesFailed++
-		tc.stats.LastErrorTime = time.Now()
-		tc.stats.LastError = err.Error()
-		tc.mu.Unlock()
-		log.Printf("lookhere: failed to send telemetry batch: %v", err)
-		return
+	// Build OTLP ExportTraceServiceRequest
+	req := &ebuv1.ExportTraceServiceRequest{
+		ResourceSpans: []*ebuv1.ResourceSpans{
+			{
+				Resource: &ebuv1.Resource{
+					Attributes: []*ebuv1.KeyValue{
+						{
+							Key: "service.name",
+							Value: &ebuv1.AnyValue{
+								Value: &ebuv1.AnyValue_StringValue{
+									StringValue: "ebu",
+								},
+							},
+						},
+					},
+				},
+				ScopeSpans: []*ebuv1.ScopeSpans{
+					{
+						Scope: &ebuv1.InstrumentationScope{
+							Name:    "github.com/jilio/lookhere",
+							Version: "1.0.0",
+						},
+						Spans: spans,
+					},
+				},
+			},
+		},
 	}
 
-	// Close stream and receive response
-	resp, err := stream.CloseAndReceive()
+	// Send request with authorization header
+	request := connect.NewRequest(req)
+	request.Header().Set("Authorization", "Bearer "+tc.apiKey)
+
+	resp, err := tc.client.ExportTrace(ctx, request)
 	if err != nil {
 		tc.mu.Lock()
 		tc.stats.BatchesFailed++
 		tc.stats.LastErrorTime = time.Now()
 		tc.stats.LastError = err.Error()
 		tc.mu.Unlock()
-		log.Printf("lookhere: failed to receive telemetry response: %v", err)
+		log.Printf("lookhere: failed to send OTLP traces: %v", err)
 		return
 	}
 
 	// Update success stats
 	tc.mu.Lock()
 	tc.stats.BatchesSent++
-	tc.stats.MetricsSent += int64(len(metrics))
+	tc.stats.SpansSent += int64(len(spans))
 	tc.stats.LastSuccessTime = time.Now()
 	tc.mu.Unlock()
 
-	if resp.Msg.ReceivedCount != int64(len(metrics)) {
-		log.Printf("lookhere: telemetry count mismatch: sent %d, server received %d",
-			len(metrics), resp.Msg.ReceivedCount)
+	// Log any partial failures
+	if resp.Msg.PartialSuccess != nil && resp.Msg.PartialSuccess.RejectedSpans > 0 {
+		log.Printf("lookhere: %d spans rejected: %s",
+			resp.Msg.PartialSuccess.RejectedSpans,
+			resp.Msg.PartialSuccess.ErrorMessage)
 	}
 }
 
-// addMetric adds a metric to the buffer and flushes if batch size is reached
-func (tc *TelemetryCollector) addMetric(metric *ebuv1.TelemetryMetric) {
+// generateTraceID generates a random 16-byte trace ID
+func generateTraceID() []byte {
+	traceID := make([]byte, 16)
+	_, _ = rand.Read(traceID)
+	return traceID
+}
+
+// generateSpanID generates a random 8-byte span ID
+func generateSpanID() []byte {
+	spanID := make([]byte, 8)
+	_, _ = rand.Read(spanID)
+	return spanID
+}
+
+// addSpan adds a span to the buffer and flushes if batch size is reached
+func (tc *TelemetryCollector) addSpan(span *ebuv1.Span) {
 	tc.mu.Lock()
-	tc.metrics = append(tc.metrics, metric)
+	tc.spans = append(tc.spans, span)
 
 	// Flush if batch size reached
-	if len(tc.metrics) >= tc.batchSize {
-		batch := tc.metrics
+	if len(tc.spans) >= tc.batchSize {
+		batch := tc.spans
 		batchSize := int64(len(batch))
-		tc.metrics = make([]*ebuv1.TelemetryMetric, 0, tc.batchSize)
+		tc.spans = make([]*ebuv1.Span, 0, tc.batchSize)
 		tc.mu.Unlock()
 
 		// Send to worker pool (non-blocking with backpressure)
@@ -238,9 +280,9 @@ func (tc *TelemetryCollector) addMetric(metric *ebuv1.TelemetryMetric) {
 			// Queue is full - drop batch and log
 			tc.mu.Lock()
 			tc.stats.BatchesDropped++
-			tc.stats.MetricsDropped += batchSize
+			tc.stats.SpansDropped += batchSize
 			tc.mu.Unlock()
-			log.Printf("lookhere: telemetry queue full, dropping batch of %d metrics", batchSize)
+			log.Printf("lookhere: telemetry queue full, dropping batch of %d spans", batchSize)
 		}
 		return
 	}
@@ -256,24 +298,40 @@ func (tc *TelemetryCollector) Close() error {
 
 // OnPublishStart is called when an event publish starts
 func (tc *TelemetryCollector) OnPublishStart(ctx context.Context, eventType string) context.Context {
-	return context.WithValue(ctx, publishStartKey{}, time.Now())
+	return context.WithValue(ctx, publishStartKey{}, &publishMeta{
+		start:   time.Now(),
+		traceID: generateTraceID(),
+		spanID:  generateSpanID(),
+	})
 }
 
 // OnPublishComplete is called when an event publish completes
 func (tc *TelemetryCollector) OnPublishComplete(ctx context.Context, eventType string) {
-	start, ok := ctx.Value(publishStartKey{}).(time.Time)
+	meta, ok := ctx.Value(publishStartKey{}).(*publishMeta)
 	if !ok {
 		return
 	}
 
-	duration := time.Since(start)
-	tc.addMetric(&ebuv1.TelemetryMetric{
-		Timestamp: timestamppb.Now(),
-		Metric: &ebuv1.TelemetryMetric_Publish{
-			Publish: &ebuv1.PublishMetric{
-				EventType:  eventType,
-				DurationNs: duration.Nanoseconds(),
+	endTime := time.Now()
+	tc.addSpan(&ebuv1.Span{
+		TraceId:           meta.traceID,
+		SpanId:            meta.spanID,
+		Name:              "ebu.publish",
+		Kind:              ebuv1.SpanKind_SPAN_KIND_INTERNAL,
+		StartTimeUnixNano: uint64(meta.start.UnixNano()),
+		EndTimeUnixNano:   uint64(endTime.UnixNano()),
+		Attributes: []*ebuv1.KeyValue{
+			{
+				Key: "event.type",
+				Value: &ebuv1.AnyValue{
+					Value: &ebuv1.AnyValue_StringValue{
+						StringValue: eventType,
+					},
+				},
 			},
+		},
+		Status: &ebuv1.Status{
+			Code: ebuv1.StatusCode_STATUS_CODE_OK,
 		},
 	})
 }
@@ -284,6 +342,8 @@ func (tc *TelemetryCollector) OnHandlerStart(ctx context.Context, eventType stri
 		start:     time.Now(),
 		eventType: eventType,
 		async:     async,
+		traceID:   generateTraceID(),
+		spanID:    generateSpanID(),
 	})
 }
 
@@ -294,21 +354,54 @@ func (tc *TelemetryCollector) OnHandlerComplete(ctx context.Context, duration ti
 		return
 	}
 
-	errMsg := ""
-	if err != nil {
-		errMsg = err.Error()
-	}
+	endTime := time.Now()
 
-	tc.addMetric(&ebuv1.TelemetryMetric{
-		Timestamp: timestamppb.Now(),
-		Metric: &ebuv1.TelemetryMetric_Handler{
-			Handler: &ebuv1.HandlerMetric{
-				EventType:  meta.eventType,
-				Async:      meta.async,
-				DurationNs: duration.Nanoseconds(),
-				Error:      errMsg,
+	// Build attributes
+	attrs := []*ebuv1.KeyValue{
+		{
+			Key: "event.type",
+			Value: &ebuv1.AnyValue{
+				Value: &ebuv1.AnyValue_StringValue{
+					StringValue: meta.eventType,
+				},
 			},
 		},
+		{
+			Key: "handler.async",
+			Value: &ebuv1.AnyValue{
+				Value: &ebuv1.AnyValue_BoolValue{
+					BoolValue: meta.async,
+				},
+			},
+		},
+	}
+
+	// Determine status
+	status := &ebuv1.Status{
+		Code: ebuv1.StatusCode_STATUS_CODE_OK,
+	}
+	if err != nil {
+		status.Code = ebuv1.StatusCode_STATUS_CODE_ERROR
+		status.Message = err.Error()
+		attrs = append(attrs, &ebuv1.KeyValue{
+			Key: "error",
+			Value: &ebuv1.AnyValue{
+				Value: &ebuv1.AnyValue_StringValue{
+					StringValue: err.Error(),
+				},
+			},
+		})
+	}
+
+	tc.addSpan(&ebuv1.Span{
+		TraceId:           meta.traceID,
+		SpanId:            meta.spanID,
+		Name:              "ebu.handler",
+		Kind:              ebuv1.SpanKind_SPAN_KIND_INTERNAL,
+		StartTimeUnixNano: uint64(meta.start.UnixNano()),
+		EndTimeUnixNano:   uint64(endTime.UnixNano()),
+		Attributes:        attrs,
+		Status:            status,
 	})
 }
 
@@ -318,6 +411,8 @@ func (tc *TelemetryCollector) OnPersistStart(ctx context.Context, eventType stri
 		start:     time.Now(),
 		eventType: eventType,
 		position:  position,
+		traceID:   generateTraceID(),
+		spanID:    generateSpanID(),
 	})
 }
 
@@ -328,20 +423,53 @@ func (tc *TelemetryCollector) OnPersistComplete(ctx context.Context, duration ti
 		return
 	}
 
-	errMsg := ""
-	if err != nil {
-		errMsg = err.Error()
-	}
+	endTime := time.Now()
 
-	tc.addMetric(&ebuv1.TelemetryMetric{
-		Timestamp: timestamppb.Now(),
-		Metric: &ebuv1.TelemetryMetric_Persist{
-			Persist: &ebuv1.PersistMetric{
-				EventType:  meta.eventType,
-				Position:   meta.position,
-				DurationNs: duration.Nanoseconds(),
-				Error:      errMsg,
+	// Build attributes
+	attrs := []*ebuv1.KeyValue{
+		{
+			Key: "event.type",
+			Value: &ebuv1.AnyValue{
+				Value: &ebuv1.AnyValue_StringValue{
+					StringValue: meta.eventType,
+				},
 			},
 		},
+		{
+			Key: "event.position",
+			Value: &ebuv1.AnyValue{
+				Value: &ebuv1.AnyValue_IntValue{
+					IntValue: meta.position,
+				},
+			},
+		},
+	}
+
+	// Determine status
+	status := &ebuv1.Status{
+		Code: ebuv1.StatusCode_STATUS_CODE_OK,
+	}
+	if err != nil {
+		status.Code = ebuv1.StatusCode_STATUS_CODE_ERROR
+		status.Message = err.Error()
+		attrs = append(attrs, &ebuv1.KeyValue{
+			Key: "error",
+			Value: &ebuv1.AnyValue{
+				Value: &ebuv1.AnyValue_StringValue{
+					StringValue: err.Error(),
+				},
+			},
+		})
+	}
+
+	tc.addSpan(&ebuv1.Span{
+		TraceId:           meta.traceID,
+		SpanId:            meta.spanID,
+		Name:              "ebu.persist",
+		Kind:              ebuv1.SpanKind_SPAN_KIND_INTERNAL,
+		StartTimeUnixNano: uint64(meta.start.UnixNano()),
+		EndTimeUnixNano:   uint64(endTime.UnixNano()),
+		Attributes:        attrs,
+		Status:            status,
 	})
 }
