@@ -1,11 +1,13 @@
 package lookhere
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	eventbus "github.com/jilio/ebu"
@@ -27,6 +29,12 @@ func ValidateDSN(dsn string) error {
 	return err
 }
 
+var (
+	// globalStores tracks stores created by WithCloud for shutdown
+	globalStores   = make(map[*eventbus.EventBus]*EventBuffer)
+	globalStoresMu sync.Mutex
+)
+
 // WithCloud returns an eventbus option that configures the EventBus to use
 // a remote LOOKHERE cloud storage backend with automatic telemetry collection.
 //
@@ -39,18 +47,23 @@ func ValidateDSN(dsn string) error {
 // use ValidateDSN() first, or use this in contexts where panic is acceptable
 // (e.g., initialization code with hardcoded DSNs).
 //
+// IMPORTANT: When using WithCloud, you must call lookhere.Shutdown(bus) instead
+// of bus.Shutdown() to ensure the event buffer is properly flushed.
+//
 // Example with validation:
 //
 //	if err := lookhere.ValidateDSN(dsn); err != nil {
 //	    return fmt.Errorf("invalid DSN: %w", err)
 //	}
 //	bus := eventbus.New(lookhere.WithCloud(dsn))
+//	defer lookhere.Shutdown(context.Background(), bus)
 //
 // Example without validation (panics on invalid DSN):
 //
 //	bus := eventbus.New(
 //	    lookhere.WithCloud("grpc://V1StGXR8_Z5jdHi6B-myT@lookhere.tech"),
 //	)
+//	defer lookhere.Shutdown(context.Background(), bus)
 //
 // To disable telemetry:
 //
@@ -80,7 +93,29 @@ func WithCloud(dsn string) eventbus.Option {
 			collector := NewTelemetryCollector(httpClient, host, apiKey)
 			eventbus.WithObservability(collector)(bus)
 		}
+
+		// Track store for shutdown
+		globalStoresMu.Lock()
+		globalStores[bus] = store
+		globalStoresMu.Unlock()
 	}
+}
+
+// Shutdown gracefully flushes the event buffer and waits for it to complete.
+// Call this before shutting down your application when using WithCloud.
+func Shutdown(ctx context.Context, bus *eventbus.EventBus) error {
+	// Get the store for this bus
+	globalStoresMu.Lock()
+	store := globalStores[bus]
+	delete(globalStores, bus)
+	globalStoresMu.Unlock()
+
+	// Close store to flush buffers
+	if store != nil {
+		return store.Close()
+	}
+
+	return nil
 }
 
 // createHTTPClient creates a secure HTTP client with proper defaults

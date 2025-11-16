@@ -9,3 +9,5 @@ require (
 )
 
 require golang.org/x/net v0.43.0 // indirect
+
+replace github.com/jilio/lookhere => ../../packages/lookhere
