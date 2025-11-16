@@ -192,8 +192,17 @@ bus := eventbus.New(lookhere.WithCloud(dsn))
 
 ### Batching & Performance
 
-Telemetry is batched automatically to minimize network overhead:
-- **Batch size:** 100 metrics per batch (or less if interval expires)
+Both events and telemetry are batched automatically to minimize network overhead:
+
+**Event Batching:**
+- **Batch size:** 100 events per batch
+- **Flush interval:** 10 milliseconds
+- **Automatic flushing:** Batches flush when size is reached or on interval
+- **Worker pool:** 10 concurrent workers process batches
+- **Backpressure:** Drops batches when queue is full (logs warning)
+
+**Telemetry Batching:**
+- **Batch size:** 100 metrics per batch
 - **Flush interval:** 10 seconds
 - **Async sending:** Telemetry sending doesn't block event processing
 - **Failure handling:** Failed telemetry sends are logged but don't affect your app
@@ -221,16 +230,37 @@ option := lookhere.WithCloud("grpc://key@lookhere.tech")
 bus := eventbus.New(option)
 ```
 
+### `NewEventBuffer(httpClient *http.Client, baseURL, apiKey string) *EventBuffer`
+
+Creates a buffered EventStore client with automatic batching (advanced usage).
+
+**Parameters:**
+- `httpClient` - HTTP client for making requests
+- `baseURL` - Full URL to lookhere server (e.g., "https://lookhere.tech")
+- `apiKey` - Your API key
+
+**Returns:**
+- `*EventBuffer` - Buffered EventStore implementation with batching
+
+**Example:**
+```go
+buffer := lookhere.NewEventBuffer(http.DefaultClient, "https://lookhere.tech", "your-api-key")
+bus := eventbus.New(eventbus.WithStore(buffer))
+defer buffer.Close() // Important: close to flush remaining events
+```
+
 ### `NewRemoteStore(host, apiKey string) *RemoteStore`
 
-Creates a remote EventStore client (advanced usage).
+Creates a simple remote EventStore client without batching (advanced usage).
+
+**Note:** For production use, prefer `WithCloud()` which uses `EventBuffer` with automatic batching.
 
 **Parameters:**
 - `host` - Full URL to lookhere server (e.g., "https://lookhere.tech")
 - `apiKey` - Your API key
 
 **Returns:**
-- `*RemoteStore` - EventStore implementation
+- `*RemoteStore` - Simple EventStore implementation (no batching)
 
 **Example:**
 ```go

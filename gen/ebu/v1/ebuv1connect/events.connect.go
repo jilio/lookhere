@@ -35,6 +35,8 @@ const (
 const (
 	// EventServiceSaveEventProcedure is the fully-qualified name of the EventService's SaveEvent RPC.
 	EventServiceSaveEventProcedure = "/ebu.v1.EventService/SaveEvent"
+	// EventServiceSaveEventsProcedure is the fully-qualified name of the EventService's SaveEvents RPC.
+	EventServiceSaveEventsProcedure = "/ebu.v1.EventService/SaveEvents"
 	// EventServiceLoadEventsProcedure is the fully-qualified name of the EventService's LoadEvents RPC.
 	EventServiceLoadEventsProcedure = "/ebu.v1.EventService/LoadEvents"
 	// EventServiceGetPositionProcedure is the fully-qualified name of the EventService's GetPosition
@@ -55,6 +57,8 @@ const (
 type EventServiceClient interface {
 	// SaveEvent saves a single event to storage
 	SaveEvent(context.Context, *connect.Request[v1.SaveEventRequest]) (*connect.Response[v1.SaveEventResponse], error)
+	// SaveEvents saves multiple events to storage (batched)
+	SaveEvents(context.Context, *connect.Request[v1.SaveEventsRequest]) (*connect.Response[v1.SaveEventsResponse], error)
 	// LoadEvents loads events from storage within a position range
 	LoadEvents(context.Context, *connect.Request[v1.LoadEventsRequest]) (*connect.Response[v1.LoadEventsResponse], error)
 	// GetPosition returns the current position (highest event number)
@@ -83,6 +87,12 @@ func NewEventServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+EventServiceSaveEventProcedure,
 			connect.WithSchema(eventServiceMethods.ByName("SaveEvent")),
+			connect.WithClientOptions(opts...),
+		),
+		saveEvents: connect.NewClient[v1.SaveEventsRequest, v1.SaveEventsResponse](
+			httpClient,
+			baseURL+EventServiceSaveEventsProcedure,
+			connect.WithSchema(eventServiceMethods.ByName("SaveEvents")),
 			connect.WithClientOptions(opts...),
 		),
 		loadEvents: connect.NewClient[v1.LoadEventsRequest, v1.LoadEventsResponse](
@@ -121,6 +131,7 @@ func NewEventServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 // eventServiceClient implements EventServiceClient.
 type eventServiceClient struct {
 	saveEvent                *connect.Client[v1.SaveEventRequest, v1.SaveEventResponse]
+	saveEvents               *connect.Client[v1.SaveEventsRequest, v1.SaveEventsResponse]
 	loadEvents               *connect.Client[v1.LoadEventsRequest, v1.LoadEventsResponse]
 	getPosition              *connect.Client[v1.GetPositionRequest, v1.GetPositionResponse]
 	saveSubscriptionPosition *connect.Client[v1.SaveSubscriptionPositionRequest, v1.SaveSubscriptionPositionResponse]
@@ -131,6 +142,11 @@ type eventServiceClient struct {
 // SaveEvent calls ebu.v1.EventService.SaveEvent.
 func (c *eventServiceClient) SaveEvent(ctx context.Context, req *connect.Request[v1.SaveEventRequest]) (*connect.Response[v1.SaveEventResponse], error) {
 	return c.saveEvent.CallUnary(ctx, req)
+}
+
+// SaveEvents calls ebu.v1.EventService.SaveEvents.
+func (c *eventServiceClient) SaveEvents(ctx context.Context, req *connect.Request[v1.SaveEventsRequest]) (*connect.Response[v1.SaveEventsResponse], error) {
+	return c.saveEvents.CallUnary(ctx, req)
 }
 
 // LoadEvents calls ebu.v1.EventService.LoadEvents.
@@ -162,6 +178,8 @@ func (c *eventServiceClient) ExportTrace(ctx context.Context, req *connect.Reque
 type EventServiceHandler interface {
 	// SaveEvent saves a single event to storage
 	SaveEvent(context.Context, *connect.Request[v1.SaveEventRequest]) (*connect.Response[v1.SaveEventResponse], error)
+	// SaveEvents saves multiple events to storage (batched)
+	SaveEvents(context.Context, *connect.Request[v1.SaveEventsRequest]) (*connect.Response[v1.SaveEventsResponse], error)
 	// LoadEvents loads events from storage within a position range
 	LoadEvents(context.Context, *connect.Request[v1.LoadEventsRequest]) (*connect.Response[v1.LoadEventsResponse], error)
 	// GetPosition returns the current position (highest event number)
@@ -186,6 +204,12 @@ func NewEventServiceHandler(svc EventServiceHandler, opts ...connect.HandlerOpti
 		EventServiceSaveEventProcedure,
 		svc.SaveEvent,
 		connect.WithSchema(eventServiceMethods.ByName("SaveEvent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	eventServiceSaveEventsHandler := connect.NewUnaryHandler(
+		EventServiceSaveEventsProcedure,
+		svc.SaveEvents,
+		connect.WithSchema(eventServiceMethods.ByName("SaveEvents")),
 		connect.WithHandlerOptions(opts...),
 	)
 	eventServiceLoadEventsHandler := connect.NewUnaryHandler(
@@ -222,6 +246,8 @@ func NewEventServiceHandler(svc EventServiceHandler, opts ...connect.HandlerOpti
 		switch r.URL.Path {
 		case EventServiceSaveEventProcedure:
 			eventServiceSaveEventHandler.ServeHTTP(w, r)
+		case EventServiceSaveEventsProcedure:
+			eventServiceSaveEventsHandler.ServeHTTP(w, r)
 		case EventServiceLoadEventsProcedure:
 			eventServiceLoadEventsHandler.ServeHTTP(w, r)
 		case EventServiceGetPositionProcedure:
@@ -243,6 +269,10 @@ type UnimplementedEventServiceHandler struct{}
 
 func (UnimplementedEventServiceHandler) SaveEvent(context.Context, *connect.Request[v1.SaveEventRequest]) (*connect.Response[v1.SaveEventResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ebu.v1.EventService.SaveEvent is not implemented"))
+}
+
+func (UnimplementedEventServiceHandler) SaveEvents(context.Context, *connect.Request[v1.SaveEventsRequest]) (*connect.Response[v1.SaveEventsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ebu.v1.EventService.SaveEvents is not implemented"))
 }
 
 func (UnimplementedEventServiceHandler) LoadEvents(context.Context, *connect.Request[v1.LoadEventsRequest]) (*connect.Response[v1.LoadEventsResponse], error) {

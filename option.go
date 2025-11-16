@@ -67,8 +67,8 @@ func WithCloud(dsn string) eventbus.Option {
 	// Create shared HTTP client for both store and telemetry
 	httpClient := createHTTPClient()
 
-	// Create remote EventStore
-	store := NewRemoteStoreWithClient(httpClient, host, apiKey)
+	// Create buffered EventStore (with batching)
+	store := NewEventBuffer(httpClient, host, apiKey)
 
 	// Return composite option
 	return func(bus *eventbus.EventBus) {

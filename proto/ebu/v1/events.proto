@@ -11,6 +11,9 @@ service EventService {
   // SaveEvent saves a single event to storage
   rpc SaveEvent(SaveEventRequest) returns (SaveEventResponse);
 
+  // SaveEvents saves multiple events to storage (batched)
+  rpc SaveEvents(SaveEventsRequest) returns (SaveEventsResponse);
+
   // LoadEvents loads events from storage within a position range
   rpc LoadEvents(LoadEventsRequest) returns (LoadEventsResponse);
 
@@ -43,6 +46,15 @@ message SaveEventRequest {
 
 message SaveEventResponse {
   int64 position = 1;
+}
+
+// SaveEvents request/response (batched)
+message SaveEventsRequest {
+  repeated StoredEvent events = 1;
+}
+
+message SaveEventsResponse {
+  repeated int64 positions = 1;  // One position per event
 }
 
 // LoadEvents request/response

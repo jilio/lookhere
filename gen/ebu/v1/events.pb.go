@@ -287,6 +287,95 @@ func (x *SaveEventResponse) GetPosition() int64 {
 	return 0
 }
 
+// SaveEvents request/response (batched)
+type SaveEventsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Events        []*StoredEvent         `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveEventsRequest) Reset() {
+	*x = SaveEventsRequest{}
+	mi := &file_ebu_v1_events_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveEventsRequest) ProtoMessage() {}
+
+func (x *SaveEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveEventsRequest.ProtoReflect.Descriptor instead.
+func (*SaveEventsRequest) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SaveEventsRequest) GetEvents() []*StoredEvent {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+type SaveEventsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Positions     []int64                `protobuf:"varint,1,rep,packed,name=positions,proto3" json:"positions,omitempty"` // One position per event
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveEventsResponse) Reset() {
+	*x = SaveEventsResponse{}
+	mi := &file_ebu_v1_events_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveEventsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveEventsResponse) ProtoMessage() {}
+
+func (x *SaveEventsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ebu_v1_events_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveEventsResponse.ProtoReflect.Descriptor instead.
+func (*SaveEventsResponse) Descriptor() ([]byte, []int) {
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SaveEventsResponse) GetPositions() []int64 {
+	if x != nil {
+		return x.Positions
+	}
+	return nil
+}
+
 // LoadEvents request/response
 type LoadEventsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -298,7 +387,7 @@ type LoadEventsRequest struct {
 
 func (x *LoadEventsRequest) Reset() {
 	*x = LoadEventsRequest{}
-	mi := &file_ebu_v1_events_proto_msgTypes[3]
+	mi := &file_ebu_v1_events_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -310,7 +399,7 @@ func (x *LoadEventsRequest) String() string {
 func (*LoadEventsRequest) ProtoMessage() {}
 
 func (x *LoadEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[3]
+	mi := &file_ebu_v1_events_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,7 +412,7 @@ func (x *LoadEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadEventsRequest.ProtoReflect.Descriptor instead.
 func (*LoadEventsRequest) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{3}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *LoadEventsRequest) GetFrom() int64 {
@@ -349,7 +438,7 @@ type LoadEventsResponse struct {
 
 func (x *LoadEventsResponse) Reset() {
 	*x = LoadEventsResponse{}
-	mi := &file_ebu_v1_events_proto_msgTypes[4]
+	mi := &file_ebu_v1_events_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -361,7 +450,7 @@ func (x *LoadEventsResponse) String() string {
 func (*LoadEventsResponse) ProtoMessage() {}
 
 func (x *LoadEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[4]
+	mi := &file_ebu_v1_events_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -374,7 +463,7 @@ func (x *LoadEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadEventsResponse.ProtoReflect.Descriptor instead.
 func (*LoadEventsResponse) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{4}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *LoadEventsResponse) GetEvents() []*StoredEvent {
@@ -393,7 +482,7 @@ type GetPositionRequest struct {
 
 func (x *GetPositionRequest) Reset() {
 	*x = GetPositionRequest{}
-	mi := &file_ebu_v1_events_proto_msgTypes[5]
+	mi := &file_ebu_v1_events_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -405,7 +494,7 @@ func (x *GetPositionRequest) String() string {
 func (*GetPositionRequest) ProtoMessage() {}
 
 func (x *GetPositionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[5]
+	mi := &file_ebu_v1_events_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -418,7 +507,7 @@ func (x *GetPositionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPositionRequest.ProtoReflect.Descriptor instead.
 func (*GetPositionRequest) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{5}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{7}
 }
 
 type GetPositionResponse struct {
@@ -430,7 +519,7 @@ type GetPositionResponse struct {
 
 func (x *GetPositionResponse) Reset() {
 	*x = GetPositionResponse{}
-	mi := &file_ebu_v1_events_proto_msgTypes[6]
+	mi := &file_ebu_v1_events_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +531,7 @@ func (x *GetPositionResponse) String() string {
 func (*GetPositionResponse) ProtoMessage() {}
 
 func (x *GetPositionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[6]
+	mi := &file_ebu_v1_events_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +544,7 @@ func (x *GetPositionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPositionResponse.ProtoReflect.Descriptor instead.
 func (*GetPositionResponse) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{6}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetPositionResponse) GetPosition() int64 {
@@ -476,7 +565,7 @@ type SaveSubscriptionPositionRequest struct {
 
 func (x *SaveSubscriptionPositionRequest) Reset() {
 	*x = SaveSubscriptionPositionRequest{}
-	mi := &file_ebu_v1_events_proto_msgTypes[7]
+	mi := &file_ebu_v1_events_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -488,7 +577,7 @@ func (x *SaveSubscriptionPositionRequest) String() string {
 func (*SaveSubscriptionPositionRequest) ProtoMessage() {}
 
 func (x *SaveSubscriptionPositionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[7]
+	mi := &file_ebu_v1_events_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -501,7 +590,7 @@ func (x *SaveSubscriptionPositionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveSubscriptionPositionRequest.ProtoReflect.Descriptor instead.
 func (*SaveSubscriptionPositionRequest) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{7}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SaveSubscriptionPositionRequest) GetSubscriptionId() string {
@@ -526,7 +615,7 @@ type SaveSubscriptionPositionResponse struct {
 
 func (x *SaveSubscriptionPositionResponse) Reset() {
 	*x = SaveSubscriptionPositionResponse{}
-	mi := &file_ebu_v1_events_proto_msgTypes[8]
+	mi := &file_ebu_v1_events_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -538,7 +627,7 @@ func (x *SaveSubscriptionPositionResponse) String() string {
 func (*SaveSubscriptionPositionResponse) ProtoMessage() {}
 
 func (x *SaveSubscriptionPositionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[8]
+	mi := &file_ebu_v1_events_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -551,7 +640,7 @@ func (x *SaveSubscriptionPositionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveSubscriptionPositionResponse.ProtoReflect.Descriptor instead.
 func (*SaveSubscriptionPositionResponse) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{8}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{10}
 }
 
 // LoadSubscriptionPosition request/response
@@ -564,7 +653,7 @@ type LoadSubscriptionPositionRequest struct {
 
 func (x *LoadSubscriptionPositionRequest) Reset() {
 	*x = LoadSubscriptionPositionRequest{}
-	mi := &file_ebu_v1_events_proto_msgTypes[9]
+	mi := &file_ebu_v1_events_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -576,7 +665,7 @@ func (x *LoadSubscriptionPositionRequest) String() string {
 func (*LoadSubscriptionPositionRequest) ProtoMessage() {}
 
 func (x *LoadSubscriptionPositionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[9]
+	mi := &file_ebu_v1_events_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -589,7 +678,7 @@ func (x *LoadSubscriptionPositionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadSubscriptionPositionRequest.ProtoReflect.Descriptor instead.
 func (*LoadSubscriptionPositionRequest) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{9}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *LoadSubscriptionPositionRequest) GetSubscriptionId() string {
@@ -608,7 +697,7 @@ type LoadSubscriptionPositionResponse struct {
 
 func (x *LoadSubscriptionPositionResponse) Reset() {
 	*x = LoadSubscriptionPositionResponse{}
-	mi := &file_ebu_v1_events_proto_msgTypes[10]
+	mi := &file_ebu_v1_events_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -620,7 +709,7 @@ func (x *LoadSubscriptionPositionResponse) String() string {
 func (*LoadSubscriptionPositionResponse) ProtoMessage() {}
 
 func (x *LoadSubscriptionPositionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[10]
+	mi := &file_ebu_v1_events_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -633,7 +722,7 @@ func (x *LoadSubscriptionPositionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadSubscriptionPositionResponse.ProtoReflect.Descriptor instead.
 func (*LoadSubscriptionPositionResponse) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{10}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *LoadSubscriptionPositionResponse) GetPosition() int64 {
@@ -652,7 +741,7 @@ type ExportTraceServiceRequest struct {
 
 func (x *ExportTraceServiceRequest) Reset() {
 	*x = ExportTraceServiceRequest{}
-	mi := &file_ebu_v1_events_proto_msgTypes[11]
+	mi := &file_ebu_v1_events_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -664,7 +753,7 @@ func (x *ExportTraceServiceRequest) String() string {
 func (*ExportTraceServiceRequest) ProtoMessage() {}
 
 func (x *ExportTraceServiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[11]
+	mi := &file_ebu_v1_events_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -677,7 +766,7 @@ func (x *ExportTraceServiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportTraceServiceRequest.ProtoReflect.Descriptor instead.
 func (*ExportTraceServiceRequest) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{11}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ExportTraceServiceRequest) GetResourceSpans() []*ResourceSpans {
@@ -696,7 +785,7 @@ type ExportTraceServiceResponse struct {
 
 func (x *ExportTraceServiceResponse) Reset() {
 	*x = ExportTraceServiceResponse{}
-	mi := &file_ebu_v1_events_proto_msgTypes[12]
+	mi := &file_ebu_v1_events_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -708,7 +797,7 @@ func (x *ExportTraceServiceResponse) String() string {
 func (*ExportTraceServiceResponse) ProtoMessage() {}
 
 func (x *ExportTraceServiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[12]
+	mi := &file_ebu_v1_events_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -721,7 +810,7 @@ func (x *ExportTraceServiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportTraceServiceResponse.ProtoReflect.Descriptor instead.
 func (*ExportTraceServiceResponse) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{12}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ExportTraceServiceResponse) GetPartialSuccess() *ExportTracePartialSuccess {
@@ -741,7 +830,7 @@ type ExportTracePartialSuccess struct {
 
 func (x *ExportTracePartialSuccess) Reset() {
 	*x = ExportTracePartialSuccess{}
-	mi := &file_ebu_v1_events_proto_msgTypes[13]
+	mi := &file_ebu_v1_events_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -753,7 +842,7 @@ func (x *ExportTracePartialSuccess) String() string {
 func (*ExportTracePartialSuccess) ProtoMessage() {}
 
 func (x *ExportTracePartialSuccess) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[13]
+	mi := &file_ebu_v1_events_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -766,7 +855,7 @@ func (x *ExportTracePartialSuccess) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportTracePartialSuccess.ProtoReflect.Descriptor instead.
 func (*ExportTracePartialSuccess) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{13}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ExportTracePartialSuccess) GetRejectedSpans() int64 {
@@ -793,7 +882,7 @@ type ResourceSpans struct {
 
 func (x *ResourceSpans) Reset() {
 	*x = ResourceSpans{}
-	mi := &file_ebu_v1_events_proto_msgTypes[14]
+	mi := &file_ebu_v1_events_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -805,7 +894,7 @@ func (x *ResourceSpans) String() string {
 func (*ResourceSpans) ProtoMessage() {}
 
 func (x *ResourceSpans) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[14]
+	mi := &file_ebu_v1_events_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -818,7 +907,7 @@ func (x *ResourceSpans) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceSpans.ProtoReflect.Descriptor instead.
 func (*ResourceSpans) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{14}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ResourceSpans) GetResource() *Resource {
@@ -844,7 +933,7 @@ type Resource struct {
 
 func (x *Resource) Reset() {
 	*x = Resource{}
-	mi := &file_ebu_v1_events_proto_msgTypes[15]
+	mi := &file_ebu_v1_events_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -856,7 +945,7 @@ func (x *Resource) String() string {
 func (*Resource) ProtoMessage() {}
 
 func (x *Resource) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[15]
+	mi := &file_ebu_v1_events_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -869,7 +958,7 @@ func (x *Resource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Resource.ProtoReflect.Descriptor instead.
 func (*Resource) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{15}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Resource) GetAttributes() []*KeyValue {
@@ -889,7 +978,7 @@ type ScopeSpans struct {
 
 func (x *ScopeSpans) Reset() {
 	*x = ScopeSpans{}
-	mi := &file_ebu_v1_events_proto_msgTypes[16]
+	mi := &file_ebu_v1_events_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -901,7 +990,7 @@ func (x *ScopeSpans) String() string {
 func (*ScopeSpans) ProtoMessage() {}
 
 func (x *ScopeSpans) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[16]
+	mi := &file_ebu_v1_events_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -914,7 +1003,7 @@ func (x *ScopeSpans) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScopeSpans.ProtoReflect.Descriptor instead.
 func (*ScopeSpans) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{16}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ScopeSpans) GetScope() *InstrumentationScope {
@@ -941,7 +1030,7 @@ type InstrumentationScope struct {
 
 func (x *InstrumentationScope) Reset() {
 	*x = InstrumentationScope{}
-	mi := &file_ebu_v1_events_proto_msgTypes[17]
+	mi := &file_ebu_v1_events_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -953,7 +1042,7 @@ func (x *InstrumentationScope) String() string {
 func (*InstrumentationScope) ProtoMessage() {}
 
 func (x *InstrumentationScope) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[17]
+	mi := &file_ebu_v1_events_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -966,7 +1055,7 @@ func (x *InstrumentationScope) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstrumentationScope.ProtoReflect.Descriptor instead.
 func (*InstrumentationScope) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{17}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *InstrumentationScope) GetName() string {
@@ -1000,7 +1089,7 @@ type Span struct {
 
 func (x *Span) Reset() {
 	*x = Span{}
-	mi := &file_ebu_v1_events_proto_msgTypes[18]
+	mi := &file_ebu_v1_events_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1012,7 +1101,7 @@ func (x *Span) String() string {
 func (*Span) ProtoMessage() {}
 
 func (x *Span) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[18]
+	mi := &file_ebu_v1_events_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1025,7 +1114,7 @@ func (x *Span) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Span.ProtoReflect.Descriptor instead.
 func (*Span) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{18}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *Span) GetTraceId() []byte {
@@ -1101,7 +1190,7 @@ type Status struct {
 
 func (x *Status) Reset() {
 	*x = Status{}
-	mi := &file_ebu_v1_events_proto_msgTypes[19]
+	mi := &file_ebu_v1_events_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1113,7 +1202,7 @@ func (x *Status) String() string {
 func (*Status) ProtoMessage() {}
 
 func (x *Status) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[19]
+	mi := &file_ebu_v1_events_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1126,7 +1215,7 @@ func (x *Status) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Status.ProtoReflect.Descriptor instead.
 func (*Status) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{19}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Status) GetCode() StatusCode {
@@ -1153,7 +1242,7 @@ type KeyValue struct {
 
 func (x *KeyValue) Reset() {
 	*x = KeyValue{}
-	mi := &file_ebu_v1_events_proto_msgTypes[20]
+	mi := &file_ebu_v1_events_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1165,7 +1254,7 @@ func (x *KeyValue) String() string {
 func (*KeyValue) ProtoMessage() {}
 
 func (x *KeyValue) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[20]
+	mi := &file_ebu_v1_events_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1178,7 +1267,7 @@ func (x *KeyValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyValue.ProtoReflect.Descriptor instead.
 func (*KeyValue) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{20}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *KeyValue) GetKey() string {
@@ -1210,7 +1299,7 @@ type AnyValue struct {
 
 func (x *AnyValue) Reset() {
 	*x = AnyValue{}
-	mi := &file_ebu_v1_events_proto_msgTypes[21]
+	mi := &file_ebu_v1_events_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1222,7 +1311,7 @@ func (x *AnyValue) String() string {
 func (*AnyValue) ProtoMessage() {}
 
 func (x *AnyValue) ProtoReflect() protoreflect.Message {
-	mi := &file_ebu_v1_events_proto_msgTypes[21]
+	mi := &file_ebu_v1_events_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1235,7 +1324,7 @@ func (x *AnyValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AnyValue.ProtoReflect.Descriptor instead.
 func (*AnyValue) Descriptor() ([]byte, []int) {
-	return file_ebu_v1_events_proto_rawDescGZIP(), []int{21}
+	return file_ebu_v1_events_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *AnyValue) GetValue() isAnyValue_Value {
@@ -1322,7 +1411,11 @@ const file_ebu_v1_events_proto_rawDesc = "" +
 	"\x10SaveEventRequest\x12)\n" +
 	"\x05event\x18\x01 \x01(\v2\x13.ebu.v1.StoredEventR\x05event\"/\n" +
 	"\x11SaveEventResponse\x12\x1a\n" +
-	"\bposition\x18\x01 \x01(\x03R\bposition\"7\n" +
+	"\bposition\x18\x01 \x01(\x03R\bposition\"@\n" +
+	"\x11SaveEventsRequest\x12+\n" +
+	"\x06events\x18\x01 \x03(\v2\x13.ebu.v1.StoredEventR\x06events\"2\n" +
+	"\x12SaveEventsResponse\x12\x1c\n" +
+	"\tpositions\x18\x01 \x03(\x03R\tpositions\"7\n" +
 	"\x11LoadEventsRequest\x12\x12\n" +
 	"\x04from\x18\x01 \x01(\x03R\x04from\x12\x0e\n" +
 	"\x02to\x18\x02 \x01(\x03R\x02to\"A\n" +
@@ -1397,9 +1490,11 @@ const file_ebu_v1_events_proto_rawDesc = "" +
 	"StatusCode\x12\x15\n" +
 	"\x11STATUS_CODE_UNSET\x10\x00\x12\x12\n" +
 	"\x0eSTATUS_CODE_OK\x10\x01\x12\x15\n" +
-	"\x11STATUS_CODE_ERROR\x10\x022\x91\x04\n" +
+	"\x11STATUS_CODE_ERROR\x10\x022\xd6\x04\n" +
 	"\fEventService\x12@\n" +
 	"\tSaveEvent\x12\x18.ebu.v1.SaveEventRequest\x1a\x19.ebu.v1.SaveEventResponse\x12C\n" +
+	"\n" +
+	"SaveEvents\x12\x19.ebu.v1.SaveEventsRequest\x1a\x1a.ebu.v1.SaveEventsResponse\x12C\n" +
 	"\n" +
 	"LoadEvents\x12\x19.ebu.v1.LoadEventsRequest\x1a\x1a.ebu.v1.LoadEventsResponse\x12F\n" +
 	"\vGetPosition\x12\x1a.ebu.v1.GetPositionRequest\x1a\x1b.ebu.v1.GetPositionResponse\x12m\n" +
@@ -1420,67 +1515,72 @@ func file_ebu_v1_events_proto_rawDescGZIP() []byte {
 }
 
 var file_ebu_v1_events_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ebu_v1_events_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_ebu_v1_events_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_ebu_v1_events_proto_goTypes = []any{
 	(SpanKind)(0),                            // 0: ebu.v1.SpanKind
 	(StatusCode)(0),                          // 1: ebu.v1.StatusCode
 	(*StoredEvent)(nil),                      // 2: ebu.v1.StoredEvent
 	(*SaveEventRequest)(nil),                 // 3: ebu.v1.SaveEventRequest
 	(*SaveEventResponse)(nil),                // 4: ebu.v1.SaveEventResponse
-	(*LoadEventsRequest)(nil),                // 5: ebu.v1.LoadEventsRequest
-	(*LoadEventsResponse)(nil),               // 6: ebu.v1.LoadEventsResponse
-	(*GetPositionRequest)(nil),               // 7: ebu.v1.GetPositionRequest
-	(*GetPositionResponse)(nil),              // 8: ebu.v1.GetPositionResponse
-	(*SaveSubscriptionPositionRequest)(nil),  // 9: ebu.v1.SaveSubscriptionPositionRequest
-	(*SaveSubscriptionPositionResponse)(nil), // 10: ebu.v1.SaveSubscriptionPositionResponse
-	(*LoadSubscriptionPositionRequest)(nil),  // 11: ebu.v1.LoadSubscriptionPositionRequest
-	(*LoadSubscriptionPositionResponse)(nil), // 12: ebu.v1.LoadSubscriptionPositionResponse
-	(*ExportTraceServiceRequest)(nil),        // 13: ebu.v1.ExportTraceServiceRequest
-	(*ExportTraceServiceResponse)(nil),       // 14: ebu.v1.ExportTraceServiceResponse
-	(*ExportTracePartialSuccess)(nil),        // 15: ebu.v1.ExportTracePartialSuccess
-	(*ResourceSpans)(nil),                    // 16: ebu.v1.ResourceSpans
-	(*Resource)(nil),                         // 17: ebu.v1.Resource
-	(*ScopeSpans)(nil),                       // 18: ebu.v1.ScopeSpans
-	(*InstrumentationScope)(nil),             // 19: ebu.v1.InstrumentationScope
-	(*Span)(nil),                             // 20: ebu.v1.Span
-	(*Status)(nil),                           // 21: ebu.v1.Status
-	(*KeyValue)(nil),                         // 22: ebu.v1.KeyValue
-	(*AnyValue)(nil),                         // 23: ebu.v1.AnyValue
-	(*timestamppb.Timestamp)(nil),            // 24: google.protobuf.Timestamp
+	(*SaveEventsRequest)(nil),                // 5: ebu.v1.SaveEventsRequest
+	(*SaveEventsResponse)(nil),               // 6: ebu.v1.SaveEventsResponse
+	(*LoadEventsRequest)(nil),                // 7: ebu.v1.LoadEventsRequest
+	(*LoadEventsResponse)(nil),               // 8: ebu.v1.LoadEventsResponse
+	(*GetPositionRequest)(nil),               // 9: ebu.v1.GetPositionRequest
+	(*GetPositionResponse)(nil),              // 10: ebu.v1.GetPositionResponse
+	(*SaveSubscriptionPositionRequest)(nil),  // 11: ebu.v1.SaveSubscriptionPositionRequest
+	(*SaveSubscriptionPositionResponse)(nil), // 12: ebu.v1.SaveSubscriptionPositionResponse
+	(*LoadSubscriptionPositionRequest)(nil),  // 13: ebu.v1.LoadSubscriptionPositionRequest
+	(*LoadSubscriptionPositionResponse)(nil), // 14: ebu.v1.LoadSubscriptionPositionResponse
+	(*ExportTraceServiceRequest)(nil),        // 15: ebu.v1.ExportTraceServiceRequest
+	(*ExportTraceServiceResponse)(nil),       // 16: ebu.v1.ExportTraceServiceResponse
+	(*ExportTracePartialSuccess)(nil),        // 17: ebu.v1.ExportTracePartialSuccess
+	(*ResourceSpans)(nil),                    // 18: ebu.v1.ResourceSpans
+	(*Resource)(nil),                         // 19: ebu.v1.Resource
+	(*ScopeSpans)(nil),                       // 20: ebu.v1.ScopeSpans
+	(*InstrumentationScope)(nil),             // 21: ebu.v1.InstrumentationScope
+	(*Span)(nil),                             // 22: ebu.v1.Span
+	(*Status)(nil),                           // 23: ebu.v1.Status
+	(*KeyValue)(nil),                         // 24: ebu.v1.KeyValue
+	(*AnyValue)(nil),                         // 25: ebu.v1.AnyValue
+	(*timestamppb.Timestamp)(nil),            // 26: google.protobuf.Timestamp
 }
 var file_ebu_v1_events_proto_depIdxs = []int32{
-	24, // 0: ebu.v1.StoredEvent.timestamp:type_name -> google.protobuf.Timestamp
+	26, // 0: ebu.v1.StoredEvent.timestamp:type_name -> google.protobuf.Timestamp
 	2,  // 1: ebu.v1.SaveEventRequest.event:type_name -> ebu.v1.StoredEvent
-	2,  // 2: ebu.v1.LoadEventsResponse.events:type_name -> ebu.v1.StoredEvent
-	16, // 3: ebu.v1.ExportTraceServiceRequest.resource_spans:type_name -> ebu.v1.ResourceSpans
-	15, // 4: ebu.v1.ExportTraceServiceResponse.partial_success:type_name -> ebu.v1.ExportTracePartialSuccess
-	17, // 5: ebu.v1.ResourceSpans.resource:type_name -> ebu.v1.Resource
-	18, // 6: ebu.v1.ResourceSpans.scope_spans:type_name -> ebu.v1.ScopeSpans
-	22, // 7: ebu.v1.Resource.attributes:type_name -> ebu.v1.KeyValue
-	19, // 8: ebu.v1.ScopeSpans.scope:type_name -> ebu.v1.InstrumentationScope
-	20, // 9: ebu.v1.ScopeSpans.spans:type_name -> ebu.v1.Span
-	0,  // 10: ebu.v1.Span.kind:type_name -> ebu.v1.SpanKind
-	22, // 11: ebu.v1.Span.attributes:type_name -> ebu.v1.KeyValue
-	21, // 12: ebu.v1.Span.status:type_name -> ebu.v1.Status
-	1,  // 13: ebu.v1.Status.code:type_name -> ebu.v1.StatusCode
-	23, // 14: ebu.v1.KeyValue.value:type_name -> ebu.v1.AnyValue
-	3,  // 15: ebu.v1.EventService.SaveEvent:input_type -> ebu.v1.SaveEventRequest
-	5,  // 16: ebu.v1.EventService.LoadEvents:input_type -> ebu.v1.LoadEventsRequest
-	7,  // 17: ebu.v1.EventService.GetPosition:input_type -> ebu.v1.GetPositionRequest
-	9,  // 18: ebu.v1.EventService.SaveSubscriptionPosition:input_type -> ebu.v1.SaveSubscriptionPositionRequest
-	11, // 19: ebu.v1.EventService.LoadSubscriptionPosition:input_type -> ebu.v1.LoadSubscriptionPositionRequest
-	13, // 20: ebu.v1.EventService.ExportTrace:input_type -> ebu.v1.ExportTraceServiceRequest
-	4,  // 21: ebu.v1.EventService.SaveEvent:output_type -> ebu.v1.SaveEventResponse
-	6,  // 22: ebu.v1.EventService.LoadEvents:output_type -> ebu.v1.LoadEventsResponse
-	8,  // 23: ebu.v1.EventService.GetPosition:output_type -> ebu.v1.GetPositionResponse
-	10, // 24: ebu.v1.EventService.SaveSubscriptionPosition:output_type -> ebu.v1.SaveSubscriptionPositionResponse
-	12, // 25: ebu.v1.EventService.LoadSubscriptionPosition:output_type -> ebu.v1.LoadSubscriptionPositionResponse
-	14, // 26: ebu.v1.EventService.ExportTrace:output_type -> ebu.v1.ExportTraceServiceResponse
-	21, // [21:27] is the sub-list for method output_type
-	15, // [15:21] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	2,  // 2: ebu.v1.SaveEventsRequest.events:type_name -> ebu.v1.StoredEvent
+	2,  // 3: ebu.v1.LoadEventsResponse.events:type_name -> ebu.v1.StoredEvent
+	18, // 4: ebu.v1.ExportTraceServiceRequest.resource_spans:type_name -> ebu.v1.ResourceSpans
+	17, // 5: ebu.v1.ExportTraceServiceResponse.partial_success:type_name -> ebu.v1.ExportTracePartialSuccess
+	19, // 6: ebu.v1.ResourceSpans.resource:type_name -> ebu.v1.Resource
+	20, // 7: ebu.v1.ResourceSpans.scope_spans:type_name -> ebu.v1.ScopeSpans
+	24, // 8: ebu.v1.Resource.attributes:type_name -> ebu.v1.KeyValue
+	21, // 9: ebu.v1.ScopeSpans.scope:type_name -> ebu.v1.InstrumentationScope
+	22, // 10: ebu.v1.ScopeSpans.spans:type_name -> ebu.v1.Span
+	0,  // 11: ebu.v1.Span.kind:type_name -> ebu.v1.SpanKind
+	24, // 12: ebu.v1.Span.attributes:type_name -> ebu.v1.KeyValue
+	23, // 13: ebu.v1.Span.status:type_name -> ebu.v1.Status
+	1,  // 14: ebu.v1.Status.code:type_name -> ebu.v1.StatusCode
+	25, // 15: ebu.v1.KeyValue.value:type_name -> ebu.v1.AnyValue
+	3,  // 16: ebu.v1.EventService.SaveEvent:input_type -> ebu.v1.SaveEventRequest
+	5,  // 17: ebu.v1.EventService.SaveEvents:input_type -> ebu.v1.SaveEventsRequest
+	7,  // 18: ebu.v1.EventService.LoadEvents:input_type -> ebu.v1.LoadEventsRequest
+	9,  // 19: ebu.v1.EventService.GetPosition:input_type -> ebu.v1.GetPositionRequest
+	11, // 20: ebu.v1.EventService.SaveSubscriptionPosition:input_type -> ebu.v1.SaveSubscriptionPositionRequest
+	13, // 21: ebu.v1.EventService.LoadSubscriptionPosition:input_type -> ebu.v1.LoadSubscriptionPositionRequest
+	15, // 22: ebu.v1.EventService.ExportTrace:input_type -> ebu.v1.ExportTraceServiceRequest
+	4,  // 23: ebu.v1.EventService.SaveEvent:output_type -> ebu.v1.SaveEventResponse
+	6,  // 24: ebu.v1.EventService.SaveEvents:output_type -> ebu.v1.SaveEventsResponse
+	8,  // 25: ebu.v1.EventService.LoadEvents:output_type -> ebu.v1.LoadEventsResponse
+	10, // 26: ebu.v1.EventService.GetPosition:output_type -> ebu.v1.GetPositionResponse
+	12, // 27: ebu.v1.EventService.SaveSubscriptionPosition:output_type -> ebu.v1.SaveSubscriptionPositionResponse
+	14, // 28: ebu.v1.EventService.LoadSubscriptionPosition:output_type -> ebu.v1.LoadSubscriptionPositionResponse
+	16, // 29: ebu.v1.EventService.ExportTrace:output_type -> ebu.v1.ExportTraceServiceResponse
+	23, // [23:30] is the sub-list for method output_type
+	16, // [16:23] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ebu_v1_events_proto_init() }
@@ -1488,7 +1588,7 @@ func file_ebu_v1_events_proto_init() {
 	if File_ebu_v1_events_proto != nil {
 		return
 	}
-	file_ebu_v1_events_proto_msgTypes[21].OneofWrappers = []any{
+	file_ebu_v1_events_proto_msgTypes[23].OneofWrappers = []any{
 		(*AnyValue_StringValue)(nil),
 		(*AnyValue_BoolValue)(nil),
 		(*AnyValue_IntValue)(nil),
@@ -1500,7 +1600,7 @@ func file_ebu_v1_events_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ebu_v1_events_proto_rawDesc), len(file_ebu_v1_events_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   22,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
