@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	connectrpc.com/connect v1.17.0
-	github.com/jilio/ebu v0.8.4
+	github.com/jilio/ebu v0.8.6
 	google.golang.org/protobuf v1.36.10
 )
 
