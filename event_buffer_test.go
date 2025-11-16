@@ -605,3 +605,41 @@ func TestEventBuffer_Save_BatchFull_QueueFull_DropPath(t *testing.T) {
 		t.Error("expected at least 1 dropped batch in Save when queue is full")
 	}
 }
+
+func TestEventBuffer_Close_DrainsBatches(t *testing.T) {
+	eventsSent := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		eventsSent++
+		resp := &ebuv1.SaveEventsResponse{
+			Positions: []int64{1},
+		}
+		w.Header().Set("Content-Type", "application/proto")
+		w.WriteHeader(http.StatusOK)
+		data, _ := proto.Marshal(resp)
+		w.Write(data)
+	}))
+	defer server.Close()
+
+	buffer := NewEventBuffer(http.DefaultClient, server.URL, "test-api-key")
+
+	// Fill buffer to trigger a batch
+	for i := 0; i < 100; i++ {
+		buffer.Save(context.Background(), &eventbus.StoredEvent{
+			Position:  int64(i + 1),
+			Type:      "TestEvent",
+			Data:      []byte("test data"),
+			Timestamp: time.Now(),
+		})
+	}
+
+	// Close should drain the batch
+	err := buffer.Close()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify batch was sent
+	if eventsSent == 0 {
+		t.Error("expected batch to be sent during Close()")
+	}
+}
