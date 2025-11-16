@@ -45,12 +45,14 @@ func ValidateDSN(dsn string) error {
 //	    return fmt.Errorf("invalid DSN: %w", err)
 //	}
 //	bus := eventbus.New(lookhere.WithCloud(dsn))
+//	defer bus.Shutdown(context.Background())
 //
 // Example without validation (panics on invalid DSN):
 //
 //	bus := eventbus.New(
 //	    lookhere.WithCloud("grpc://V1StGXR8_Z5jdHi6B-myT@lookhere.tech"),
 //	)
+//	defer bus.Shutdown(context.Background())
 //
 // To disable telemetry:
 //

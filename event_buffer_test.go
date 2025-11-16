@@ -605,3 +605,176 @@ func TestEventBuffer_Save_BatchFull_QueueFull_DropPath(t *testing.T) {
 		t.Error("expected at least 1 dropped batch in Save when queue is full")
 	}
 }
+
+func TestEventBuffer_Close_DrainsBatches(t *testing.T) {
+	eventsSent := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		eventsSent++
+		resp := &ebuv1.SaveEventsResponse{
+			Positions: []int64{1},
+		}
+		w.Header().Set("Content-Type", "application/proto")
+		w.WriteHeader(http.StatusOK)
+		data, _ := proto.Marshal(resp)
+		w.Write(data)
+	}))
+	defer server.Close()
+
+	buffer := NewEventBuffer(http.DefaultClient, server.URL, "test-api-key")
+
+	// Fill buffer to trigger a batch
+	for i := 0; i < 100; i++ {
+		buffer.Save(context.Background(), &eventbus.StoredEvent{
+			Position:  int64(i + 1),
+			Type:      "TestEvent",
+			Data:      []byte("test data"),
+			Timestamp: time.Now(),
+		})
+	}
+
+	// Close should drain the batch
+	err := buffer.Close()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify batch was sent
+	if eventsSent == 0 {
+		t.Error("expected batch to be sent during Close()")
+	}
+}
+
+func TestEventBuffer_Worker_ChannelClosed(t *testing.T) {
+	batchesProcessed := 0
+	var mu sync.Mutex
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		batchesProcessed++
+		mu.Unlock()
+		resp := &ebuv1.SaveEventsResponse{
+			Positions: []int64{1},
+		}
+		w.Header().Set("Content-Type", "application/proto")
+		w.WriteHeader(http.StatusOK)
+		data, _ := proto.Marshal(resp)
+		w.Write(data)
+	}))
+	defer server.Close()
+
+	buffer := NewEventBuffer(http.DefaultClient, server.URL, "test-api-key")
+
+	// Queue multiple batches directly to the channel
+	// This ensures batches are in the queue when workers are running
+	for i := 0; i < 5; i++ {
+		batch := []*ebuv1.StoredEvent{
+			{
+				Position:  int64(i + 1),
+				Type:      "TestEvent",
+				Data:      []byte("test data"),
+				Timestamp: timestamppb.New(time.Now()),
+			},
+		}
+		buffer.batchQueue <- batch
+	}
+
+	// Give workers time to start processing
+	time.Sleep(50 * time.Millisecond)
+
+	// Now close the channel directly to trigger the !ok path
+	// The workers will finish current batches and then hit the !ok case
+	close(buffer.batchQueue)
+
+	// Wait for workers to finish
+	buffer.wg.Wait()
+
+	mu.Lock()
+	processed := batchesProcessed
+	mu.Unlock()
+
+	// Workers should have processed the batches before exiting
+	if processed == 0 {
+		t.Error("expected workers to process batches before exiting via !ok path")
+	}
+}
+
+func TestEventBuffer_Close_EmptyQueue(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := &ebuv1.SaveEventsResponse{
+			Positions: []int64{1},
+		}
+		w.Header().Set("Content-Type", "application/proto")
+		w.WriteHeader(http.StatusOK)
+		data, _ := proto.Marshal(resp)
+		w.Write(data)
+	}))
+	defer server.Close()
+
+	buffer := NewEventBuffer(http.DefaultClient, server.URL, "test-api-key")
+
+	// Don't add any events - queue should be empty
+
+	// Close with empty queue should hit the default case in the select
+	err := buffer.Close()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEventBuffer_Close_DrainsQueuedBatches(t *testing.T) {
+	batchesProcessed := 0
+	var mu sync.Mutex
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		batchesProcessed++
+		mu.Unlock()
+		resp := &ebuv1.SaveEventsResponse{
+			Positions: []int64{1},
+		}
+		w.Header().Set("Content-Type", "application/proto")
+		w.WriteHeader(http.StatusOK)
+		data, _ := proto.Marshal(resp)
+		w.Write(data)
+	}))
+	defer server.Close()
+
+	buffer := NewEventBuffer(http.DefaultClient, server.URL, "test-api-key")
+
+	// Stop workers first so batches will queue up
+	buffer.cancel()
+	buffer.wg.Wait()
+
+	// Now add batches directly to the queue (workers are stopped)
+	batch1 := []*ebuv1.StoredEvent{
+		{
+			Position:  1,
+			Type:      "TestEvent",
+			Data:      []byte("test data"),
+			Timestamp: timestamppb.New(time.Now()),
+		},
+	}
+	batch2 := []*ebuv1.StoredEvent{
+		{
+			Position:  2,
+			Type:      "TestEvent",
+			Data:      []byte("test data"),
+			Timestamp: timestamppb.New(time.Now()),
+		},
+	}
+	buffer.batchQueue <- batch1
+	buffer.batchQueue <- batch2
+
+	// Close should drain these batches (line 322-323 coverage)
+	err := buffer.Close()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	mu.Lock()
+	processed := batchesProcessed
+	mu.Unlock()
+
+	// Close should have drained and sent both batches
+	if processed != 2 {
+		t.Errorf("expected 2 batches to be drained and sent, got %d", processed)
+	}
+}

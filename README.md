@@ -34,8 +34,10 @@ go get github.com/jilio/lookhere
 package main
 
 import (
+    "context"
     "log"
-    
+    "time"
+
     eventbus "github.com/jilio/ebu"
     "github.com/jilio/lookhere"
 )
@@ -44,9 +46,17 @@ func main() {
     // Connect to lookhere cloud storage
     dsn := "grpc://your-api-key@lookhere.tech"
     bus := eventbus.New(lookhere.WithCloud(dsn))
-    
+
     // Use the EventBus as normal - events are automatically persisted
     // to lookhere cloud storage
+
+    // Shutdown to flush events before exit
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    if err := bus.Shutdown(ctx); err != nil {
+        log.Printf("shutdown error: %v", err)
+    }
 }
 ```
 
@@ -87,7 +97,8 @@ package main
 import (
     "context"
     "log"
-    
+    "time"
+
     eventbus "github.com/jilio/ebu"
     "github.com/jilio/lookhere"
 )
@@ -101,16 +112,24 @@ func main() {
     // Initialize EventBus with lookhere cloud storage
     dsn := "grpc://your-api-key@lookhere.tech"
     bus := eventbus.New(lookhere.WithCloud(dsn))
-    
+
     // Publish events - they're automatically saved to the cloud
     ctx := context.Background()
     event := UserCreated{
         UserID: "user-123",
         Email:  "user@example.com",
     }
-    
+
     if err := bus.Publish(ctx, event); err != nil {
         log.Fatalf("Failed to publish event: %v", err)
+    }
+
+    // Shutdown to flush remaining events
+    shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    if err := bus.Shutdown(shutdownCtx); err != nil {
+        log.Fatalf("Shutdown error: %v", err)
     }
 }
 ```

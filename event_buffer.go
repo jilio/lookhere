@@ -52,9 +52,10 @@ type EventBuffer struct {
 	// Worker pool for sending batches
 	batchQueue chan []*ebuv1.StoredEvent
 
-	ctx    context.Context
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	ctx     context.Context
+	cancel  context.CancelFunc
+	wg      sync.WaitGroup
+	flushWg sync.WaitGroup
 }
 
 // NewEventBuffer creates a new event buffer that sends events
@@ -80,7 +81,7 @@ func NewEventBuffer(httpClient *http.Client, baseURL, apiKey string) *EventBuffe
 	}
 
 	// Start background goroutine to flush events periodically
-	eb.wg.Add(1)
+	eb.flushWg.Add(1)
 	go eb.flushLoop()
 
 	return eb
@@ -91,9 +92,14 @@ func (eb *EventBuffer) worker() {
 	defer eb.wg.Done()
 	for {
 		select {
-		case batch := <-eb.batchQueue:
+		case batch, ok := <-eb.batchQueue:
+			if !ok {
+				// Channel closed, exit
+				return
+			}
 			eb.sendBatch(batch)
 		case <-eb.ctx.Done():
+			// Context cancelled, exit immediately
 			return
 		}
 	}
@@ -101,7 +107,7 @@ func (eb *EventBuffer) worker() {
 
 // flushLoop periodically flushes events to the server
 func (eb *EventBuffer) flushLoop() {
-	defer eb.wg.Done()
+	defer eb.flushWg.Done()
 	ticker := time.NewTicker(eb.interval)
 	defer ticker.Stop()
 
@@ -301,7 +307,24 @@ func (eb *EventBuffer) LoadSubscriptionPosition(ctx context.Context, subscriptio
 
 // Close stops the event buffer and flushes remaining events
 func (eb *EventBuffer) Close() error {
+	// Cancel context - this triggers final flush in flushLoop and stops workers
 	eb.cancel()
+
+	// Wait for flushLoop to finish (it will do final flush)
+	eb.flushWg.Wait()
+
+	// Wait for workers to exit
 	eb.wg.Wait()
-	return nil
+
+	// Drain any remaining batches in the queue
+	for {
+		select {
+		case batch := <-eb.batchQueue:
+			eb.sendBatch(batch)
+		default:
+			// Queue is empty
+			close(eb.batchQueue)
+			return nil
+		}
+	}
 }
